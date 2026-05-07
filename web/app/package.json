@@ -1,0 +1,34 @@
+{
+  "name": "descriptor-card-game",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sync:detail-doc": "node ../tools/node/sync-detail-doc.mjs",
+    "sync:assets": "node ../tools/node/sync-assets.mjs",
+    "sync:shared": "npm run sync:detail-doc && npm run sync:assets",
+    "predev": "npm run sync:shared",
+    "dev": "vite --host 127.0.0.1",
+    "prebuild": "npm run sync:shared",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "vite": "latest",
+    "typescript": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "lucide-react": "latest"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "latest",
+    "@testing-library/react": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "jsdom": "latest",
+    "vitest": "latest"
+  }
+}

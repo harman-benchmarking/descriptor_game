@@ -1,0 +1,73 @@
+
+> descriptor-card-game@0.1.0 predev
+> npm run sync:shared
+
+
+> descriptor-card-game@0.1.0 sync:shared
+> npm run sync:detail-doc && npm run sync:assets
+
+
+> descriptor-card-game@0.1.0 sync:detail-doc
+> node ../tools/node/sync-detail-doc.mjs
+
+Synced C:\Users\louis\code\descriptor_game\docs\descriptor-detail-pages.md -> C:\Users\louis\code\descriptor_game\web\app\public\docs\descriptor-detail-pages.md
+
+> descriptor-card-game@0.1.0 sync:assets
+> node ../tools/node/sync-assets.mjs
+
+Synced 110 descriptor images, 46 discovery images, 19 region images, and 5 building images.
+
+> descriptor-card-game@0.1.0 dev
+> vite --host 127.0.0.1 --port 5176
+
+
+  [32m[1mVITE[22m v8.0.10[39m  [2mready in [0m[1m144[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5176[22m/[39m
+[2m6:53:57 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m6:54:31 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m6:55:06 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m7:29:09 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m7:32:04 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m7:32:20 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx, /src/ui/components/LanguagePicker.tsx[22m
+[2m7:40:34 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m7:40:42 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx, /src/ui/components/LanguagePicker.tsx[22m
+[2m7:42:41 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m7:43:12 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx, /src/ui/components/LanguagePicker.tsx[22m
+[2m7:46:23 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m7:47:25 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx, /src/ui/components/LanguagePicker.tsx[22m
+[2m7:55:09 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m7:55:32 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx, /src/ui/components/LanguagePicker.tsx[22m
+[2m8:37:44 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m8:48:20 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m8:50:06 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx, /src/ui/components/LanguagePicker.tsx[22m
+[2m8:50:48 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/ui/styles/layout.css[22m
+[2m8:51:36 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/ui/styles/layout.css[22m
+[2m9:20:30 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx, /src/ui/components/CardDetailModal.tsx, /src/ui/components/visualizers/SpatialStageVisualizer.tsx, /src/ui/components/visualizers/IntegrityArtifactVisualizer.tsx, /src/ui/components/visualizers/ModuleVisualizer.tsx, /src/ui/components/visualizers/DynamicMotionVisualizer.tsx[22m
+[2m9:20:35 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx, /src/ui/components/CardDetailModal.tsx[22m
+[2m9:20:38 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m9:20:42 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m9:20:48 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m9:20:56 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx, /src/ui/components/LanguagePicker.tsx[22m
+[2m9:29:41 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx, /src/ui/components/CardDetailModal.tsx[22m
+[2m9:58:20 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx, /src/ui/components/CardDetailModal.tsx[22m
+[2m9:59:00 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m9:59:42 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx, /src/ui/components/LanguagePicker.tsx[22m
+[2m10:27:03 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx, /src/ui/components/CardDetailModal.tsx[22m
+[2m10:27:03 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx, /src/ui/components/CardDetailModal.tsx, /src/ui/components/visualizers/SpatialStageVisualizer.tsx, /src/ui/components/visualizers/IntegrityArtifactVisualizer.tsx, /src/ui/components/visualizers/ModuleVisualizer.tsx, /src/ui/components/visualizers/DynamicMotionVisualizer.tsx[22m
+[2m10:27:03 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx, /src/ui/components/LanguagePicker.tsx[22m
+[2m10:27:03 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx, /src/ui/components/CardDetailModal.tsx[22m
+[2m10:56:03 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m10:56:03 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx, /src/ui/components/LanguagePicker.tsx[22m
+[2m11:13:53 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m11:14:32 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m11:15:50 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m11:16:37 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m11:17:20 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m11:18:06 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m11:18:42 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m11:20:36 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m11:21:28 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m11:22:34 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx, /src/ui/components/LanguagePicker.tsx[22m
+[2m11:23:24 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/ui/styles/layout.css[22m
+[2m11:48:46 pm[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m

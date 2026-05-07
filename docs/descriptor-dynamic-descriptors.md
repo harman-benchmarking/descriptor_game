@@ -1,34 +1,22 @@
-# Dynamic Descriptor Raw Materials
+# Dynamic Descriptors
 
-This document defines a draft vocabulary for dynamic aspects in audio system evaluation.
+This document is the source-of-truth for the Dynamic descriptor module: attack, release, compression behavior, level motion, density, headroom, clipping, overload, candidate recipes, and implementation notes.
 
-It is separate from the existing spectral descriptor system. Spectral descriptors describe frequency-balance changes such as bass, mids, treble, masking, brightness, and body. Dynamic descriptors describe how the sound moves over time: attack, release, level contrast, compression behavior, transient shape, recovery, density, headroom, clipping, and overload distortion.
+The companion module files are `descriptor-spectral-descriptors.md`, `descriptor-spatial-descriptors.md`, and `descriptor-integrity-descriptors.md`.
 
-## Boundary With Spectral Descriptors
+Dynamic descriptors describe how the sound moves over time: attack, release, level contrast, compression behavior, transient shape, recovery, density, headroom, clipping, and overload distortion.
 
-Keep these existing cards in the spectral system:
-
-| Existing spectral card | Why it can feel dynamic | Why it should remain spectral |
-|---|---|---|
-| `Thump` | Gives low hits more physical arrival. | It is a `55 Hz` EQ boost. |
-| `Punchy` | Makes bass hits feel firmer and faster. | It is a `95 Hz` EQ boost, not an envelope processor. |
-| `Impactful` | Combines low hit and focused punch. | It expands to `Thump + Punchy`. |
-| `Powerful` | Adds sub weight and low impact. | It expands to `Rumble + Thump`. |
-| `Energetic` | Feels lively because low force and bright top are both present. | It is a combined low/treble EQ recipe. |
-| `Exciting` | Feels bigger, brighter, wider, and more intense. | It is a full-range EQ recipe, not a dynamic-range change. |
-
-Rule of thumb:
+The key listening question is:
 
 ```text
-Spectral punch = frequency balance makes hits feel stronger.
-Dynamic punch = envelope/headroom behavior preserves or reduces hit shape.
+Does the time shape of the sound change?
 ```
 
-Avoid reusing `Punchy`, `Impactful`, and `Powerful` as core dynamic card names. They are already meaningful in the spectral atlas.
+This doc starts by defining the dynamic vocabulary itself. Boundaries with Spectral and Integrity descriptors are kept later in the document, after the dynamic meanings are established.
 
-## Current App Anchors
+## Current And Prototype App Anchors
 
-The current app already has two dynamic training families:
+The dynamic MVP should anchor itself in two training families. The current prototype already exercises part of the compression/motion family; the attack/release family is the next natural expansion.
 
 | Module | Current task | Dynamic vocabulary it can support |
 |---|---|---|
@@ -42,10 +30,24 @@ The native audio engine supports:
 | `thresholdDb` | Sets when gain reduction starts. Lower threshold usually makes compression more audible. |
 | `ratio` | Controls how strongly peaks are reduced above threshold. |
 | `attackMs` | Controls how quickly transients are caught. Faster attack can soften or blunt hits. |
-| `releaseMs` | Controls recovery time. Short release can pump; long release can feel lively or unstable, while long release can feel smoother or sluggish. |
+| `releaseMs` | Controls recovery time after gain reduction. Very short release can chatter or pump; medium release can recover musically; too-long release can smear, lag, or stay clamped across the next event. |
 | `makeupGainDb` | Restores loudness after compression and can create loudness-density bias. |
 
-`Clipped` and `Distorted` belong in the dynamic vocabulary because they are overload/headroom outcomes. They are not first-class DSP controls in the current compressor-only engine yet; a limiter, clipper, soft clipper, or saturation stage would make them much clearer and safer to train.
+`Clipped` and `Distorted` belong in the dynamic vocabulary because they are overload/headroom outcomes. The MVP app now includes a simple waveshaper overload stage for them; a later limiter, ceiling control, and calibrated saturation stage would make them clearer and safer to train.
+
+## MVP Region Art Direction
+
+Keep the aspect name as `Dynamic`. The atlas regions inside Dynamic should use game-world place names, with the perceptual axis preserved as the region theme:
+
+| Region | Theme | Image prompt |
+|---|---|
+| `Snapback Springs` | attack and recovery | Show an elastic landscape of spring towers, snap-bright impact stones, and trails that return cleanly to rest after each hit. Include one sharp kinetic burst and one softened cushioned landing so the region clearly suggests how hits start, stop, and reset. |
+| `Pressurebreak Basin` | compression, motion, and overload | Retain the current `Pressureflow Basin` icon for MVP. Show translucent pressure chambers, glowing layers squeezed closer together, rhythmic light paths swelling and dipping, and broad plains where energy is held at a steadier level. The region now also owns headroom failure, so future icon revisions may add a few clean ceiling-strike fragments without turning the image into a separate overload land. |
+
+Future off-atlas region prompt:
+- `Ceilingbreak Spires`: show bright energy rising toward a glowing ceiling, with some peaks staying clean under an open sky while other peaks strike the ceiling and break into squared-off fragments and rough sparks. The image should communicate headroom, clipping, and overload roughness as dynamic peak behavior, not independent noise artifacts.
+
+Use full region prompt text from `descriptor-icon-design-language.md`, section `15.4 Dynamic Region Icon Prompts`. Use Dynamic descriptor card prompts from section `14.6 Dynamic MVP Descriptor Card Prompts`.
 
 ## Vocabulary Shape
 
@@ -53,26 +55,119 @@ Recommended current shape:
 
 | Type | Count | Purpose |
 |---|---:|---|
-| Basic cards | `16` | Playable dynamic ingredients with one primary region each. |
-| Discovery cards | `9` | Recipe outcomes that combine basics. |
+| MVP basic cards | `9` | First playable dynamic ingredients that are comparatively distinguishable and technically meaningful. |
+| Phase-2 / advanced cards | `6` | Useful vocabulary that needs stronger DSP, clearer teaching, or recipe context. |
+| MVP discovery cards | `3` | One strong Snapback discovery plus two Pressurebreak discoveries. |
+| Later discovery cards | open | Recipe outcomes that need stronger DSP, better loudness matching, or clearer source material. |
 | Alias / outcome icons | open | Extra vocabulary can have icons without becoming separate playable basics. |
 
-Reduced basic vocabulary:
+Recommended MVP basic vocabulary:
 
 ```text
-Snappy, Softened, Blunted, Tight, Loose,
-Compressed, Squashed, Dense, Pumping, Breathing, Flat,
-Lively, Constrained, Strained, Clipped, Distorted
+Snappy, Softened, Tight, Loose,
+Compressed, Pumping, Flat,
+Clipped, Distorted
 ```
 
-Demoted from basic cards:
+Recommended MVP discovery vocabulary:
+
+```text
+Sluggish, Surging, Overdriven
+```
+
+Why this smaller set:
+- It covers attack, recovery, compression motion, expressive flattening, and overload/headroom failure.
+- It avoids too many overlapping compression words at the beginning.
+- It keeps the first Dynamic module closer to what listeners can realistically hear.
+- It keeps `Clipped` and `Distorted` in Dynamic because their cause is headroom/peak overload, even though their heard result can resemble an artifact.
+
+Current MVP Learn gate split:
+
+| Gate | Gift pair | First catch | Later unlocks | Listening focus |
+|---|---|---|---|---|
+| `Snapback Gate` | `Tight`, `Loose` | `Softened` | `Snappy` | attack edge, recovery, groove reset |
+| `Pressureflow Gate` | `Compressed`, `Pumping` | `Flat` | `Clipped`, `Distorted` | compression, motion, flatness, headroom failure |
+
+Reason:
+- `Snapback Gate` teaches time-shape first: the groove is either held tight, loosened, softened, or given a snappy reset.
+- `Pressureflow Gate` then moves into level behavior: pressure, duck-and-return motion, expressive flattening, and overload.
+- `Ceilingbreak Spires` is absorbed into `Pressurebreak Basin` for MVP because `Clipped` and `Distorted` are pressure/headroom failures and are too small as a standalone region.
+
+Extended vocabulary:
+
+```text
+Blunted, Squashed, Dense, Breathing,
+Lively, Constrained, Strained
+```
+
+Demoted or delayed from MVP basic cards:
 
 | Word | Use it as | Reason |
 |---|---|---|
+| `Blunted` | stronger `Softened` state or ingredient in `Crushed` | Too close to `Softened` for the first pass; useful later when attack training is more granular. |
+| `Squashed` | discovery/evolved card from `Compressed + Flat` or `Compressed + Softened` | It is a compound pressure state, not a clean first descriptor. |
+| `Dense` | alias/outcome icon or later card | Too vulnerable to loudness, arrangement density, warmth, and mastering bias. |
+| `Breathing` | phase-2 motion card or slow variant of `Pumping` | Useful, but subtle; teach `Pumping` first. |
+| `Lively` | reference/reward descriptor or part of `Alive` | Mostly a preserved quality, not an effect the current compressor can add. |
+| `Constrained` | later macro-dynamic card or ingredient for `Limited` | Useful, but subtle and source-dependent; `Flat` and overload basics are clearer first. |
+| `Strained` | ingredient for `Limited` later | Needs limiter/headroom DSP to be distinct from constrained, harsh, clipped, or distorted. |
 | `Explosive` | alias/outcome icon for strong macro contrast | Useful review word, but difficult to implement as a direct processor with the current compressor-only path. |
 | `Effortless` | alias/outcome icon for clean headroom or `Alive` | Valuable evaluation word, but it mostly means absence of strain rather than an effect to apply. |
 | `Over-compressed` | old name for `Surging` or severe compression states | Too technical and too close to the underlying process. |
 | `Over-leveled` | old name for `Pinned` | Too technical; `Pinned` is more card-like and distinct from `Flat`. |
+
+Vocabulary status:
+
+| Status | Meaning | Current examples |
+|---|---|---|
+| Direct MVP effect | The app can create or prototype this as an audible processing change. | `Softened`, `Loose`, `Compressed`, `Pumping`, `Flat`, `Clipped`, `Distorted` |
+| Reference or preserved quality | The app mostly teaches this by comparing clean/preserved audio against damaged versions. | `Snappy`, `Tight`, later `Lively`, `Responsive`, `Alive` |
+| MVP discovery / compound state | The word contains two simpler MVP cues and should unlock as a recipe card. | `Sluggish`, `Surging`, `Overdriven` |
+| Compound pressure state | The word contains more than one simpler cue and may become a discovery later. | `Squashed`, `Crushed`, `Breathless`, `Pinned` |
+| Boundary or future headroom effect | Useful but needs careful distinction from Integrity artifacts. | `Strained`, later `Constrained` |
+
+This matters because dynamic words are easy to hear as "better", "louder", "brighter", or "more exciting" unless the cue is tightly defined.
+
+## Definition Discipline
+
+Dynamic descriptors should be defined by the audible cue, not by the tool name alone.
+
+Rules:
+- One descriptor should answer one listening question whenever possible.
+- If a word requires several cues, mark it as a compound state or recipe candidate.
+- Positive descriptors such as `Snappy`, `Tight`, and `Lively` are usually preserved qualities, not effects the current compressor can add from nothing.
+- Negative descriptors such as `Blunted`, `Pumping`, and `Flat` are easier to synthesize because they remove or reshape motion.
+- Loudness must be matched before judging any dynamic descriptor.
+- Do not use a dynamic label if the same impression is mostly caused by EQ, stereo width, noise, or speaker defects.
+
+Practical teaching rule:
+
+```text
+First teach the loss or change.
+Then teach the positive word as the preserved alternative.
+```
+
+Example:
+- Teach `Blunted` as the front edge being pressed down.
+- Then teach `Snappy` as the version where that front edge survives.
+
+## Ambiguous Descriptor Decisions
+
+These words need extra care.
+
+| Word | Ambiguity | Decision |
+|---|---|---|
+| `Compressed` | Can sound good, controlled, louder, or denser. | Use for audible gain control where peaks and average level move closer, but some motion remains. It is not automatically bad. |
+| `Flat` | Can mean tonal flatness, boring performance, or reduced level motion. | In this module it means reduced expressive level motion. It should not imply flat frequency response. |
+| `Squashed` | Feels like `Compressed + Flat`, often with softened/blunted attack. | Treat as a severe compound compression state. It should not be an MVP basic; use it as a discovery/evolved card after `Compressed`, `Flat`, and `Softened` are understood. |
+| `Dense` | Can come from arrangement, EQ warmth, saturation, or compression. | Use only when high average presence is the audible cue after loudness matching. Do not use it as a synonym for bassy, warm, or busy. |
+| `Tight` | Can mean spectral bass control or dynamic recovery. | In Dynamic, it means recovery timing feels controlled. Avoid using it for less bass bloom. |
+| `Loose` | Can mean boomy bass, room resonance, or slow recovery. | In Dynamic, it means the level/recovery lags after hits. Use transient material, not resonant bass, for training. |
+| `Lively` | Can mean bright, exciting, wide, or simply preferred. | Use as a preserved micro-dynamic quality: small expressive changes remain audible. |
+| `Constrained` | Can overlap with `Flat`, `Limited`, and `Strained`. | Delay from MVP basics. Use later for reduced macro expansion: big sections do not open enough, but hard overload is not necessarily audible. |
+| `Strained` | Can overlap with harshness, clipping, distortion, or system stress. | Use for forced loud moments near a ceiling. If hard peak damage is audible, use `Clipped`; if rough nonlinear texture is audible, use `Distorted`. |
+| `Clipped` | Could be treated as an Integrity defect because it sounds damaged. | Keep it in Dynamic because the cause is peak/headroom failure. Integrity should own independent clicks, crackle, hum/buzz tones, rattles, dropouts, and contamination. |
+| `Distorted` | Can mean any unwanted roughness. | Keep the overload version in Dynamic only when roughness follows signal intensity. Independent buzz, rattle, crackle, or dropout belongs to Integrity. |
 
 ## Dynamic Axes
 
@@ -80,41 +175,41 @@ Dynamic descriptors should be grouped by listening axis rather than by frequency
 
 | Axis | Listener question | Positive/neutral vocabulary | Negative/excess vocabulary |
 |---|---|---|---|
-| Transient attack | Does the first edge of a hit arrive clearly? | snappy, responsive | softened, blunted |
-| Release/recovery | Does the level recover naturally after hits? | tight, controlled | loose, pumping, breathing |
-| Compression density | Is the signal being level-controlled? | controlled, dense | compressed, squashed, flat |
-| Contrast and headroom | Does music keep motion, scale, ease, and clean peaks? | lively, alive | constrained, strained, clipped, distorted |
+| Transient attack | Does the first edge of a hit survive? | snappy, responsive | softened |
+| Release/recovery | Does the level reset before the next event? | tight, controlled | loose |
+| Compression and motion | Is gain control changing peak/average relationships or creating level movement? | controlled | compressed, pumping, flat |
+| Overload and headroom | Do peaks stay clean when pushed? | alive | clipped, distorted, overdriven |
+
+The MVP Learn flow uses two gates across these axes:
+- `Snapback Gate` covers transient attack plus release/recovery.
+- `Pressureflow Gate` covers compression/motion plus the first overload/headroom warnings.
 
 ## Dynamic Regions And Roadmap
 
-The atlas uses three regions to avoid repeated basic cards. Every basic descriptor has one primary home. Recipes are allowed to bridge regions because real dynamic perception often crosses attack, compression, and headroom.
+The MVP atlas uses two Dynamic regions. `Ceilingbreak Spires` is absorbed into `Pressurebreak Basin` for now because `Clipped` and `Distorted` are pressure/headroom failures and do not yet have enough surrounding vocabulary to justify a standalone region.
 
-### Region 1: Attack And Recovery
+### Region 1: Snapback Springs
 
 Theme: how hits start, stop, and reset.
 
 Elements involved:
 - `Snappy`
 - `Softened`
-- `Blunted`
 - `Tight`
 - `Loose`
 
 Roadmap:
 
 ```text
-Snappy + Tight
-      |
-  Responsive
-
 Softened + Loose
       |
    Sluggish
 ```
 
 Bridge recipes:
-- `Crushed` uses `Blunted` plus compression-region ingredients.
-- `Alive` uses `Snappy + Tight` plus contrast-region `Lively`.
+- `Responsive` can later use `Snappy + Tight`, but it is a preserved/reference quality more than an effect the current engine creates.
+- `Crushed` can later use a stronger attack-loss state such as `Blunted`, but `Blunted` does not need to be an MVP basic.
+- `Alive` uses `Snappy + Tight` plus preserved contrast.
 
 Table:
 
@@ -122,28 +217,38 @@ Table:
 |---|---|---|---|
 | Element | `Snappy` | basic | clear transient front edge |
 | Element | `Softened` | basic | rounded front edge |
-| Element | `Blunted` | basic | heavily pressed attack |
 | Element | `Tight` | basic | controlled start/stop behavior |
 | Element | `Loose` | basic | slow or smeared recovery |
-| Combo | `Responsive` | `Snappy + Tight` | clean attack plus controlled recovery |
-| Combo | `Sluggish` | `Softened + Loose` | rounded attack plus slow recovery |
+| MVP combo | `Sluggish` | `Softened + Loose` | rounded attack plus slow recovery |
+| Later combo | `Responsive` | `Snappy + Tight` | clean attack plus controlled recovery, best as a reference/reward state |
+| Later card | `Blunted` | stronger `Softened` | heavily pressed attack, reserved for phase 2 |
 
 Design notes:
 - This is the most concrete dynamic region and should be taught first.
 - Dry drums, percussion, plucked bass, piano, and acoustic guitar make it easier.
 - `Snappy` must be taught against spectral `Bright`, because high-frequency emphasis can fake attack clarity.
 
-### Region 2: Compression And Motion
+### Region 2: Pressurebreak Basin
 
-Theme: gain reduction, loudness density, and audible level movement.
+Theme: gain reduction, audible level movement, expressive flattening, and overload/headroom failure.
+
+This region needs the strictest wording because several cards are related:
+
+```text
+Compressed = audible level control, motion still remains.
+Flat = expressive level motion is reduced, whether or not compression is obvious.
+Clipped = peaks hit a hard ceiling and lose shape.
+Distorted = overload roughness follows signal intensity.
+Squashed = severe compressed + flat behavior, often with blunted peaks.
+Dense = high average presence after loudness matching; not automatically bad.
+```
 
 Elements involved:
 - `Compressed`
-- `Squashed`
-- `Dense`
 - `Pumping`
-- `Breathing`
 - `Flat`
+- `Clipped`
+- `Distorted`
 
 Roadmap:
 
@@ -152,113 +257,81 @@ Compressed + Pumping
       |
    Surging
 
-Compressed + Flat
+Clipped + Distorted
       |
-   Pinned
-
-Squashed + Blunted + Flat
-      |
-   Crushed
-
-Dense + Squashed + Constrained
-      |
-  Breathless
+   Overdriven
 ```
 
 Table:
 
 | Stage | Card | Recipe | Role |
 |---|---|---|---|
-| Element | `Compressed` | basic | audible gain reduction |
-| Element | `Squashed` | basic | heavy compression or limiting |
-| Element | `Dense` | basic | high average level and filled-in sound |
+| Element | `Compressed` | basic | audible gain reduction while some motion remains |
 | Element | `Pumping` | basic | rhythmic level ducking and return |
-| Element | `Breathing` | basic | slower or gentler program-level swelling |
-| Element | `Flat` | basic | reduced expressive level motion |
-| Combo | `Surging` | `Compressed + Pumping` | compressor-driven waves of level motion |
-| Combo | `Pinned` | `Compressed + Flat` | sound held at one intensity |
-| Big combo | `Crushed` | `Squashed + Blunted + Flat` | severe compression removes attack and life |
-| Big combo | `Breathless` | `Dense + Squashed + Constrained` | constant pressure with little room to expand |
+| Element | `Flat` | basic | reduced expressive level motion without necessarily sounding overloaded |
+| Element | `Clipped` | basic | peaks hit a hard ceiling and lose shape |
+| Element | `Distorted` | basic | nonlinear roughness follows overload |
+| MVP combo | `Surging` | `Compressed + Pumping` | compressor-driven waves of level motion |
+| MVP combo | `Overdriven` | `Clipped + Distorted` | overload becomes audibly hard and rough |
+| Later combo | `Pinned` | `Compressed + Flat` | sound held at one intensity |
+| Later combo / evolved | `Squashed` | `Compressed + Flat + Softened` | severe pressure state: compressed, flattened, and softened |
+| Later big combo | `Crushed` | `Compressed + Pumping + Flat` | severe compression removes motion and natural recovery |
+| Later card | `Breathing` | slow `Pumping` variant | slower program-level swelling, reserved for phase 2 |
+| Later card | `Dense` | density outcome | high average presence, reserved until loudness matching is stronger |
+| Later card | `Constrained` | macro-dynamic restriction | loud sections fail to open before obvious damage |
+| Later card | `Strained` | limiter/headroom stress | loud moments feel forced near a ceiling |
 
 Design notes:
-- This region maps most directly to the current `Compression Detection` module.
+- This region maps directly to compression detection plus the first headroom/overload warnings.
 - Loudness matching is mandatory because denser samples can sound better just because they are louder.
 - `Dense` should be treated carefully: it can be a positive production quality or a warning sign.
-
-### Region 3: Headroom And Strain
-
-Theme: whether music keeps motion, scale, clean peaks, and ease when intensity changes.
-
-Elements involved:
-- `Lively`
-- `Constrained`
-- `Strained`
-- `Clipped`
-- `Distorted`
-
-Roadmap:
-
-```text
-Constrained + Strained
-      |
-   Limited
-
-Clipped + Distorted + Strained
-      |
-  Overdriven
-
-Lively + Snappy + Tight
-      |
-    Alive
-
-Dense + Squashed + Constrained
-      |
-  Breathless
-```
-
-Table:
-
-| Stage | Card | Recipe | Role |
-|---|---|---|---|
-| Element | `Lively` | basic | small expressive motion survives |
-| Element | `Constrained` | basic | macro contrast is held back |
-| Element | `Strained` | basic | loud moments feel forced or choked |
-| Element | `Clipped` | basic | peaks hit a hard ceiling and lose shape |
-| Element | `Distorted` | basic | nonlinear roughness appears under overload |
-| Combo | `Limited` | `Constrained + Strained` | loud moments hit a ceiling |
-| Combo | `Overdriven` | `Clipped + Distorted + Strained` | overload becomes audibly hard or rough |
-| Big combo | `Alive` | `Lively + Snappy + Tight` | small motion, clean starts, and recovery all survive |
-| Big combo | `Breathless` | `Dense + Squashed + Constrained` | pressure and compression remove room to expand |
-
-Design notes:
-- This region is smaller, but it is important for audio-system evaluation language.
-- Its best cards are recipe outcomes, because contrast and headroom are often relationships between several cues.
+- `Squashed` should not be taught before `Compressed` and `Flat`; otherwise the player hears it as an undefined "bad compression" bucket.
+- `Clipped` and `Distorted` are included in Dynamic because their cause is headroom/overload behavior.
+- Integrity should still own independent defects: hum, buzz, crackle, rattle, dropout, rub buzz, and contamination.
 - `Clipped` should be taught as peak-shape damage, not generic harshness.
 - `Distorted` should be taught as overload roughness, not hum, buzz, rattle, or other integrity issues.
-- `Strained`, `Clipped`, and `Distorted` need future limiter/saturation/clipper DSP to become strong direct training examples.
+- `Clipped` and `Distorted` now use a simple overload DSP layer in the MVP, but they still need later calibration against source material and loudness bias.
+
+### Future Off-Atlas Region: Ceilingbreak Spires
+
+Status: future/off-atlas until there is enough headroom vocabulary to support it.
+
+Potential future elements:
+- `Constrained`
+- `Strained`
+- `Lively`
+- `Limited`
+- `Alive`
+- `Breathless`
+
+Design note:
+- Bring this region back only if the app gets a stronger limiter/headroom model and enough non-overlapping descriptors to keep it from being a two-card region.
 
 ## Core Descriptor Catalog
 
-These are candidate dynamic cards. They should not be treated as final implementation data yet.
+These are the active MVP dynamic cards plus deferred candidates.
 
 | ID | Label | Primary region | Summary | Listen for | Aliases / icon variants |
 |---|---|---|---|---|---|
-| `snappy` | `Snappy` | Attack And Recovery | Fast, clear front edges. | Snare cracks, plucked bass starts, kick click, piano hammer definition. | crisp attack, sharp attack |
-| `softened` | `Softened` | Attack And Recovery | Rounded attack without severe damage. | Hits feel gentler; percussion fronts are less decisive. | rounded, gentle, cushioned |
-| `blunted` | `Blunted` | Attack And Recovery | Front edge is flattened or dulled by fast gain control. | Drums hit but do not bite; attacks feel pressed down. | dulled attack, flattened attack |
-| `tight` | `Tight` | Attack And Recovery | Starts and recoveries feel controlled. | Drums stop cleanly, bass notes do not drag, groove feels locked. | controlled recovery, locked |
-| `loose` | `Loose` | Attack And Recovery | Recovery feels slow, lagging, or poorly controlled. | Bass/drums smear into following notes; groove feels slow to reset. | dragging, slow, lagging |
-| `compressed` | `Compressed` | Compression And Motion | Gain control is audible but not necessarily ruined. | Peaks sit closer to average level; mix feels controlled and constant. | controlled, squeezed |
-| `squashed` | `Squashed` | Compression And Motion | Heavy compression or limiting collapses contrast. | Drums lose height, vocals stay pinned, choruses stop expanding. | crushed, over-limited |
-| `dense` | `Dense` | Compression And Motion | Sound is filled-in and continuously present. | Few gaps between events; average loudness feels high. | packed, filled-in |
-| `pumping` | `Pumping` | Compression And Motion | Level moves audibly after hits. | Mix ducks after kick/snare, then swells back with the beat. | ducking, pulsing |
-| `breathing` | `Breathing` | Compression And Motion | Program level gently rises and falls with gain control. | Backgrounds or ambience swell between phrases. | swelling, inhaling/exhaling |
-| `flat` | `Flat` | Compression And Motion | Level motion feels evened out and emotionally still. | Everything sits at one intensity; expressive changes disappear. | over-leveled, monotone |
-| `lively` | `Lively` | Headroom And Strain | Small performance gestures remain animated. | Vocal inflection, ghost notes, pick pressure, subtle groove movement. | expressive, animated |
-| `constrained` | `Constrained` | Headroom And Strain | Loud/quiet range feels held back. | Choruses do not open up; accents feel smaller than expected. | restricted, held back |
-| `strained` | `Strained` | Headroom And Strain | Loud moments sound forced, choked, or near a ceiling. | Choruses harden, peaks squeeze, system sounds stressed. | choked, stressed, limited |
-| `clipped` | `Clipped` | Headroom And Strain | Peaks hit a hard ceiling and lose their natural shape. | Loud hits crack, flatten, or splash; snare, kick, and vocal peaks have hard edges. | clipping, clipped peaks, hard ceiling |
-| `distorted` | `Distorted` | Headroom And Strain | Nonlinear roughness appears when the signal or system is pushed. | Loud moments become gritty, fuzzy, raspy, or broken up. | overdriven, saturated, gritty |
+| `snappy` | `Snappy` | Snapback Springs | MVP basic: preserved fast transient starts. | The first edge of snare, kick, pluck, or piano arrives clearly without needing extra treble. | crisp attack, sharp attack |
+| `softened` | `Softened` | Snapback Springs | MVP basic: mildly rounded transient starts. | Hits still arrive, but their first edge is gentler and less decisive. | rounded, gentle, cushioned |
+| `tight` | `Tight` | Snapback Springs | MVP basic/reference: controlled recovery between events. | Drums and bass reset cleanly before the next hit; groove feels locked. | controlled recovery, locked |
+| `loose` | `Loose` | Snapback Springs | MVP basic: slow or smeared recovery between events. | Bass/drums drag into following notes; groove feels slow to reset. | dragging, slow, lagging |
+| `compressed` | `Compressed` | Pressurebreak Basin | MVP basic: audible gain control, not necessarily damaged. | Peaks sit closer to average level, but the sound can still breathe and move. | controlled, squeezed |
+| `pumping` | `Pumping` | Pressurebreak Basin | MVP basic: fast, audible duck-and-return level motion. | Mix ducks after kick/snare, then swells back with the beat. | ducking, pulsing |
+| `flat` | `Flat` | Pressurebreak Basin | MVP basic: reduced expressive level variation. | Everything sits at similar intensity; small performance changes disappear. | over-leveled, monotone |
+| `clipped` | `Clipped` | Pressurebreak Basin | MVP basic: peaks hit a hard ceiling and lose shape. | Loud hits crack, flatten, spit, or splash at the instant of impact. | clipping, clipped peaks, hard ceiling |
+| `distorted` | `Distorted` | Pressurebreak Basin | MVP basic: overload adds nonlinear roughness. | Loud moments become gritty, fuzzy, raspy, or broken up in a way that follows signal intensity. | saturated, gritty, warped |
+| `sluggish` | `Sluggish` | Snapback Springs | MVP discovery: `Softened + Loose`, rounded attack plus slow recovery. | Hits feel cushioned and slow to spring back before the next event. | dragging, laggy, slow reset |
+| `surging` | `Surging` | Pressurebreak Basin | MVP discovery: `Compressed + Pumping`, compressor-driven waves of level motion. | The whole mix ducks, swells, or pulls in waves caused by gain control. | swelling, ducking, over-compressed |
+| `overdriven` | `Overdriven` | Pressurebreak Basin | MVP discovery: `Clipped + Distorted`, overload becomes audibly hard and rough. | Loud peaks flatten and grow gritty or rough in a way tied to being pushed past clean headroom. | driven, overloaded, hard saturation |
+| `blunted` | `Blunted` | Snapback Springs | Phase 2: strongly flattened transient starts. | Drums hit but do not bite; attack energy feels pressed down. | dulled attack, flattened attack |
+| `breathing` | `Breathing` | Pressurebreak Basin | Phase 2: slower program-level gain swell. | Backgrounds, room tone, or sustained parts gently rise and fall. | swelling, inhaling/exhaling |
+| `squashed` | `Squashed` | Pressurebreak Basin | Discovery/evolved: severe compression/limiting pressure. | Hits lose height, sections stop expanding, and the sound feels pressed or over-held. | crushed, over-limited |
+| `dense` | `Dense` | Pressurebreak Basin | Later/alias: high average presence after loudness matching. | The sound feels continuously filled-in with fewer gaps between events. | packed, filled-in |
+| `lively` | `Lively` | future Ceilingbreak Spires | Reference/reward: preserved small dynamic gestures. | Vocal inflection, ghost notes, pick pressure, and subtle groove motion remain audible. | expressive, animated |
+| `constrained` | `Constrained` | future Ceilingbreak Spires | Later card: macro contrast is held back. | Choruses or loud sections do not open up as much as expected. | restricted, held back |
+| `strained` | `Strained` | future Ceilingbreak Spires | Future DSP: loud moments feel forced near a ceiling. | Choruses harden, peaks squeeze, and the system seems to be running out of ease. | choked, stressed, limited |
 
 ## Descriptor Detail Notes
 
@@ -268,6 +341,7 @@ Player-facing meaning:
 - The sound has quick, clean starts.
 - Hits arrive with a visible edge.
 - Rhythmic material feels alert.
+- The edge should come from timing/envelope behavior, not just extra treble.
 
 Technical meaning:
 - Usually points to preserved transient attack.
@@ -318,10 +392,12 @@ Implementation note:
 Player-facing meaning:
 - Starts and stops feel controlled.
 - The groove is firm and tidy.
+- The next hit arrives cleanly because the previous one has recovered.
 
 Technical meaning:
 - Good timing relationship between transient attack, sustain, and release.
 - Can be partly spectral in bass systems, so dynamic `Tight` should focus on recovery behavior.
+- It is not the same as less bass bloom; that belongs to Spectral or room behavior.
 
 Best material:
 - Kick/bass interplay, funk drums, short bass notes, rhythmic acoustic guitar.
@@ -335,10 +411,12 @@ Implementation note:
 Player-facing meaning:
 - The groove feels late, smeared, or slow to recover.
 - Notes hang around longer than they should.
+- The sound seems to reset too slowly after hits.
 
 Technical meaning:
 - Slow or poorly matched recovery.
 - Can be confused with spectral `Boomy` or room resonance, so use level-matched transient material.
+- It should be heard as time smear, not simply extra low-frequency sustain.
 
 Best material:
 - Drum and bass loops, short kick patterns, staccato bass.
@@ -350,11 +428,14 @@ Implementation note:
 
 Player-facing meaning:
 - Peaks and average level sit closer together.
-- The sound may feel louder, denser, or more controlled.
+- The sound may feel more controlled or more constant.
+- It is not automatically bad; the key cue is audible level control.
 
 Technical meaning:
 - Audible gain reduction.
-- Not inherently bad; compression can be musically useful.
+- Peaks are reduced relative to average level.
+- Motion remains more intact than in `Flat`, `Pinned`, or `Squashed`.
+- Compression can be musically useful, so avoid treating every compressed sound as damaged.
 - In training, this maps directly to the current compression detection module.
 
 Best material:
@@ -362,32 +443,43 @@ Best material:
 
 Implementation note:
 - Fully feasible with the current compressor.
+- Must be loudness-matched against the uncompressed version.
+- If the result simply sounds louder or fuller, the player may be hearing `Dense` bias rather than compression behavior.
 
 ### Squashed
 
 Player-facing meaning:
 - The music has been pressed down too hard.
-- It feels loud but less alive.
+- It feels loud or dense, but less alive.
+- It often sounds like `Compressed` pushed past usefulness.
 
 Technical meaning:
 - Severe compression or limiting.
-- Usually combines reduced macro contrast, reduced transient attack, and high average density.
+- Usually combines three cues:
+  - audible compression,
+  - reduced expressive contrast,
+  - softened or blunted peaks.
+- This is why `Squashed` overlaps with `Compressed` and `Flat`.
 
 Best material:
 - Full mixes, loud choruses, drum buses, aggressive pop/rock/electronic material.
 
 Implementation note:
-- Feasible with current compressor, but a true limiter model would make it more realistic.
+- Feasible with current compressor as a prototype state.
+- A true limiter model would make it more realistic.
+- Product decision: keep `Squashed` out of the MVP basics. Use it as a discovery/evolved card from `Compressed + Flat + Softened`, or later from `Compressed + Flat + Blunted` when `Blunted` exists.
 
 ### Dense
 
 Player-facing meaning:
 - The sound is packed and continuously filled.
 - It may feel strong and polished, or tiring if overdone.
+- It is about average presence, not necessarily bad compression.
 
 Technical meaning:
 - High average level relative to peaks.
 - Can be created by compression, saturation, arrangement density, or mastering.
+- It should not be used when the only cue is warmth, bass thickness, or a busy arrangement.
 
 Best material:
 - Modern pop, electronic drops, heavily produced rock, dense vocal stacks.
@@ -395,6 +487,7 @@ Best material:
 Implementation note:
 - Feasible with current compressor plus makeup gain.
 - Needs loudness matching so the player does not simply prefer the louder sample.
+- For early training, avoid using `Dense` as a first-pass basic unless the app can level-match well.
 
 ### Pumping
 
@@ -434,10 +527,12 @@ Implementation note:
 Player-facing meaning:
 - Everything feels like it sits at one intensity.
 - The music moves, but the level emotion does not.
+- It feels less expressive, not necessarily louder or more distorted.
 
 Technical meaning:
-- Reduced micro-dynamic variation.
+- Reduced micro-dynamic variation and expressive level motion.
 - Can come from compression, limiting, poor source material, or over-normalized examples.
+- It is different from `Compressed`: compression is the process/cue of gain control; flatness is the resulting loss of expressive variation.
 
 Best material:
 - Expressive performances where small level variation should be obvious.
@@ -445,17 +540,20 @@ Best material:
 Implementation note:
 - Feasible with current compressor, but source choice matters.
 - It should be separated from `Pinned`, which is the recipe where compression causes the flatness.
+- It should also be separated from `Squashed`, which is a more severe pressure state that often includes flatness plus attack loss.
 
 ### Lively
 
 Player-facing meaning:
 - The sound has small motions and expressive life.
 - Performers feel animated.
+- It should feel naturally moving, not merely brighter, wider, or louder.
 
 Technical meaning:
 - Good micro-dynamic preservation.
 - Small level differences remain audible.
 - Can be mistaken for spectral brightness or excitement.
+- In the current app, this is mostly a reference-state descriptor: the processing should preserve it, not manufacture it.
 
 Best material:
 - Vocals, jazz drums, fingerstyle guitar, piano, expressive acoustic performances.
@@ -469,10 +567,12 @@ Implementation note:
 Player-facing meaning:
 - The music feels held in place.
 - Big moments arrive, but they do not fully open.
+- It is a lack of expansion, before clear overload damage appears.
 
 Technical meaning:
 - Reduced macro-dynamic contrast.
 - Often related to compression, limiting, or conservative playback headroom.
+- It is broader and less damaged than `Strained`.
 
 Best material:
 - Songs with obvious verse/chorus contrast, orchestral crescendos, acoustic drums.
@@ -485,10 +585,16 @@ Implementation note:
 Player-facing meaning:
 - Loud passages sound forced.
 - The sound hardens, chokes, or feels near a ceiling.
+- The cue is stress at loud moments, not constant flatness.
 
 Technical meaning:
 - Headroom or limiter stress.
 - Can include compression, distortion, clipped peaks, or amplifier/speaker limits.
+- It sits between `Constrained` and explicit damage words:
+  - use `Constrained` if loud sections merely fail to open,
+  - use `Strained` if loud sections feel forced or stressed,
+  - use `Clipped` if peaks hit a hard ceiling,
+  - use `Distorted` if rough nonlinear texture appears.
 
 Best material:
 - Loud dense choruses, bass-heavy peaks, bright vocals, complex full-band passages.
@@ -512,8 +618,8 @@ Best material:
 - Snare hits, kick hits, vocal peaks, bass drops, bright synth stabs, loud full-mix accents.
 
 Implementation note:
-- Current compressor can only approximate the feeling through aggressive gain control.
-- A future clipper/limiter ceiling is recommended so `Clipped` can be trained as peak damage rather than generic harshness.
+- The MVP uses a waveshaper clip curve after the compressor so `Clipped` can sound like peak-shape damage rather than generic compression.
+- A future limiter ceiling and loudness-matched output trim should replace the rough prototype once training material is finalized.
 - Keep playback level safe; the cue should come from the processed signal, not from turning the device up.
 
 ### Distorted
@@ -542,23 +648,29 @@ Recipe labels should name a recognizable listening outcome. Ingredient descripto
 
 | ID | Discovery | Ingredients | Tier | Primary region | Meaning | Technical feasibility |
 |---|---|---|---|---|---|---|
-| `responsive` | `Responsive` | `Snappy + Tight` | Combo | Attack And Recovery | Clean attack with controlled recovery. | Possible as a preserved/less-processed state; stronger with future transient shaper. |
-| `sluggish` | `Sluggish` | `Softened + Loose` | Combo | Attack And Recovery | Rounded attack with slow recovery. | Feasible with current compressor. |
-| `surging` | `Surging` | `Compressed + Pumping` | Combo | Compression And Motion | Compressor-driven waves of level motion. | Feasible with current compressor. |
-| `pinned` | `Pinned` | `Compressed + Flat` | Combo | Compression And Motion | Sound held at one intensity. | Feasible with current compressor and good source material. |
-| `limited` | `Limited` | `Constrained + Strained` | Combo | Headroom And Strain | Loud moments hit a ceiling. | Partly feasible now; stronger with limiter/headroom DSP. |
-| `overdriven` | `Overdriven` | `Clipped + Distorted + Strained` | Combo | Headroom And Strain | Overload becomes audibly hard or rough. | Needs limiter/clipper/saturation DSP for a convincing version. |
-| `crushed` | `Crushed` | `Squashed + Blunted + Flat` | Big combo | Compression And Motion | Severe compression removes attack and life. | Feasible now; stronger with limiter model. |
-| `breathless` | `Breathless` | `Dense + Squashed + Constrained` | Big combo | Compression And Motion | Constant pressure with little room to expand. | Feasible now with loudness matching. |
-| `alive` | `Alive` | `Lively + Snappy + Tight` | Big combo | Headroom And Strain | Small motion, clean starts, and recovery all survive. | Best as a reference/reward state until future enhancement DSP exists. |
+| `sluggish` | `Sluggish` | `Softened + Loose` | MVP combo | Snapback Springs | Rounded attack with slow recovery. | Feasible with current compressor and distinguishable. |
+| `surging` | `Surging` | `Compressed + Pumping` | MVP combo | Pressurebreak Basin | Compressor-driven waves of level motion. | Feasible with current compressor; should use a dedicated recipe profile for clarity. |
+| `overdriven` | `Overdriven` | `Clipped + Distorted` | MVP combo | Pressurebreak Basin | Overload becomes audibly hard and rough. | Feasible with the MVP waveshaper; later limiter/clipper calibration recommended. |
+
+Later/deferred recipes:
+
+| ID | Discovery | Ingredients | Tier | Region | Reason deferred |
+|---|---|---|---|---|---|
+| `responsive` | `Responsive` | `Snappy + Tight` | Later combo / reward | Snapback Springs | More like preserved clean behavior than a direct effect. |
+| `pinned` | `Pinned` | `Compressed + Flat` | Later combo | Pressurebreak Basin | Too close to `Flat` with current stacking; needs dedicated calibration. |
+| `squashed` | `Squashed` | `Compressed + Flat + Softened` | Later evolved combo | Pressurebreak Basin | Useful word, but overlaps too much with `Flat` and generic bad compression in MVP. |
+| `crushed` | `Crushed` | `Compressed + Pumping + Flat` | Later big combo | Pressurebreak Basin | Current stacking collapses toward `Pumping`; needs custom recipe profile. |
+| `breathless` | `Breathless` | `Squashed + overload` | Later big combo | Pressurebreak Basin / future Ceilingbreak | Highly loudness-biased; needs better loudness matching and overload calibration. |
+| `alive` | `Alive` | `Snappy + Tight` plus preserved contrast | Later reward | future Ceilingbreak Spires | Best as a reference/reward state until future enhancement DSP exists. |
+| `limited` | `Limited` | `Constrained + Flat` | Later combo | future Ceilingbreak Spires | `Constrained` is not an MVP basic and a limiter/headroom model would help. |
 
 ### Region Recipe Map
 
 | Region | Internal recipes | Bridge recipes |
 |---|---|---|
-| Attack And Recovery | `Responsive`, `Sluggish` | `Crushed`, `Alive` |
-| Compression And Motion | `Surging`, `Pinned`, `Crushed`, `Breathless` | `Limited` if limiter-style behavior is added |
-| Headroom And Strain | `Limited`, `Overdriven`, `Alive` | `Breathless` |
+| Snapback Springs | `Sluggish` | later `Responsive`, `Alive` |
+| Pressurebreak Basin | `Surging`, `Overdriven` | later `Pinned`, `Squashed`, `Crushed`, `Breathless`, `Limited` |
+| future Ceilingbreak Spires | later `Alive`, `Limited` | later `Breathless` |
 
 ### Combo Recipe Details
 
@@ -660,11 +772,11 @@ Player-facing identity:
 Technical reading:
 - `Clipped` supplies hard peak-ceiling damage.
 - `Distorted` supplies nonlinear roughness.
-- `Strained` supplies the sense that loud moments are forced.
+- Later `Strained` can shade the feeling, but the MVP recipe is `Clipped + Distorted`.
 
 Implementation:
-- Weakly approximated by aggressive compression today.
-- Best implemented later with a clipper or waveshaper after compression, with output trim for safe loudness matching.
+- Feasible now with the MVP waveshaper after compression, with safe output trim for loudness matching.
+- A later limiter, ceiling control, or calibrated saturation stage would make the teaching example cleaner.
 
 Good A/B prompt:
 - Which sample sounds pushed past clean headroom?
@@ -752,20 +864,20 @@ Recipe guardrails:
 |---|---|---|
 | `Snappy` | indirect | Use clean/lightly processed reference against softened alternatives. |
 | `Softened` | feasible | Moderate compression with fast attack. |
-| `Blunted` | feasible | Stronger compression with very fast attack. |
+| `Blunted` | phase 2 | Stronger compression with very fast attack; use only after `Softened` is reliable. |
 | `Tight` | partial | Moderate compression with release matched to rhythmic material. |
 | `Loose` | feasible | Slow release or poorly matched release on rhythmic material. |
 | `Compressed` | feasible | Existing compressor detection profile. |
-| `Squashed` | feasible | Low threshold, high ratio, fast attack, makeup gain. |
-| `Dense` | feasible | Compression plus makeup gain, with output trim. |
+| `Squashed` | recipe/evolved preferred | Low threshold, high ratio, fast attack, makeup gain; do not teach before `Compressed` and `Flat`. |
+| `Dense` | delayed | Compression plus makeup gain, with output trim and level matching; too loudness-sensitive for MVP basic. |
 | `Pumping` | feasible | Compression with audible release movement. |
-| `Breathing` | feasible | Gentler compression with slower program-level recovery. |
+| `Breathing` | phase 2 | Gentler compression with slower program-level recovery; teach after `Pumping`. |
 | `Flat` | feasible | Compression that reduces expressive variation without obvious pumping. |
-| `Lively` | indirect | Use clean/reference or future expansion/transient tools. |
-| `Constrained` | feasible | Compression that reduces macro contrast. |
-| `Strained` | partial | Approximate with heavy gain control; future limiter/saturation recommended. |
-| `Clipped` | future DSP recommended | Use aggressive compression only as a weak proxy; proper version needs a clipper or limiter ceiling. |
-| `Distorted` | future DSP recommended | Use heavy gain control only as a weak proxy; proper version needs saturation or waveshaping. |
+| `Lively` | reference/reward | Use clean/reference or future expansion/transient tools. |
+| `Constrained` | delayed | Compression that reduces macro contrast; subtle and source-dependent, so not MVP basic. |
+| `Strained` | delayed/future | Approximate with heavy gain control; future limiter/saturation recommended. |
+| `Clipped` | MVP basic with new DSP | Needs a simple clipper/limiter ceiling, not just aggressive compression. |
+| `Distorted` | MVP basic with new DSP | Needs waveshaper/saturation; must be separated from Integrity defects. |
 
 ### Recipe Feasibility
 
@@ -775,9 +887,10 @@ Recipe guardrails:
 | `Sluggish` | yes | Fast-ish attack plus slow release. |
 | `Surging` | yes | Existing compressor can create this clearly. |
 | `Pinned` | yes | Needs expressive source and loudness matching. |
-| `Limited` | partial | Needs limiter/headroom model for strongest result. |
-| `Overdriven` | no, except weak proxy | Needs clipper/saturation after gain control, with safe output trim. |
-| `Crushed` | yes | Compressor can approximate; limiter would improve authenticity. |
+| `Squashed` | yes as recipe | Use as `Compressed + Flat + Softened`; avoid as first-pass basic. |
+| `Overdriven` | yes with MVP overload DSP | Use as `Clipped + Distorted`, with safe output trim. |
+| `Limited` | partial/later | Use as `Constrained + Flat`; needs limiter/headroom model for strongest result. |
+| `Crushed` | yes | Compressor can approximate; limiter would improve authenticity. Keep distinct from `Squashed` by requiring attack loss plus flatness. |
 | `Breathless` | yes | Feasible but must control loudness bias. |
 | `Alive` | partial | Best as reward/reference until future transient/expansion DSP exists. |
 
@@ -808,15 +921,15 @@ Example profiles for exploration, not final calibration:
 | `Pinned` | `-30 dB` | `5:1` | `6 ms` | `240 ms` | `+4 dB` | held intensity |
 | `Surging` | `-30 dB` | `6:1` | `5 ms` | `100 ms` | `+5 dB` | compressor waves |
 | `Crushed` | `-34 dB` | `10:1` | `2 ms` | `130 ms` | `+7 dB` | pressed and lifeless |
-| `Clipped` | `-30 dB` | `10:1` | `1 ms` | `80 ms` | `+8 dB` | weak hard-ceiling proxy; use real clipper later |
-| `Distorted` | `-30 dB` | `8:1` | `2 ms` | `120 ms` | `+7 dB` | weak overload proxy; use waveshaper later |
-| `Overdriven` | `-32 dB` | `10:1` | `1 ms` | `90 ms` | `+8 dB` | weak pushed-past-headroom proxy |
+| `Clipped` | `-20 dB` | `3.5:1` | `2 ms` | `80 ms` | light trim/makeup | hard clip curve after compression |
+| `Distorted` | `-22 dB` | `2.5:1` | `6 ms` | `160 ms` | light trim/makeup | tanh-style waveshaper after compression |
+| `Overdriven` | `-24 dB` | `5:1` | `2 ms` | `90 ms` | light trim/makeup | combined saturation plus clipped ceiling |
 
 Calibration notes:
 - These profiles need listening tests on the app's actual tracks.
 - Output trim or loudness matching should be added for fair A/B comparisons.
 - Material choice matters as much as parameter choice.
-- The `Clipped`, `Distorted`, and `Overdriven` rows are placeholders until a real overload stage exists.
+- The `Clipped`, `Distorted`, and `Overdriven` rows describe prototype values; they still need listening calibration on the final training loops.
 
 ## Alias And Icon Strategy
 
@@ -865,6 +978,41 @@ Testing cautions:
 - Do not teach `Distorted` as a catch-all defect; hum, buzz, rattle, crackle, and dropouts belong in integrity.
 - Short listening rounds are better for fatiguing dynamic artifacts.
 
+## Boundary With Spectral Descriptors
+
+Spectral descriptors describe frequency-balance changes such as bass, mids, treble, masking, brightness, and body. Dynamic descriptors describe time behavior: attack, recovery, level movement, contrast, headroom, and overload.
+
+Keep these existing cards in the spectral system:
+
+| Existing spectral card | Why it can feel dynamic | Why it should remain spectral |
+|---|---|---|
+| `Thump` | Gives low hits more physical arrival. | It is a `55 Hz` EQ boost. |
+| `Punchy` | Makes bass hits feel firmer and faster. | It is a `95 Hz` EQ boost, not an envelope processor. |
+| `Impactful` | Combines low hit and focused punch. | It expands to `Thump + Punchy`. |
+| `Powerful` | Adds sub weight and low impact. | It expands to `Rumble + Thump`. |
+| `Energetic` | Feels lively because low force and bright top are both present. | It is a combined low/treble EQ recipe. |
+| `Exciting` | Feels bigger, brighter, wider, and more intense. | It is a full-range EQ recipe, not a dynamic-range change. |
+
+Rule of thumb:
+
+```text
+Spectral punch = frequency balance makes hits feel stronger.
+Dynamic punch = envelope/headroom behavior preserves or reduces hit shape.
+```
+
+Avoid reusing `Punchy`, `Impactful`, and `Powerful` as core dynamic card names. They are already meaningful in the spectral atlas.
+
+Practical decision rule:
+
+| If the player hears... | Prefer... |
+|---|---|
+| more low hit, more upper-bass firmness, or more top-edge bite | Spectral descriptor |
+| a faster or slower attack with level matched | Dynamic descriptor |
+| recovery that drags after hits | Dynamic descriptor |
+| a chorus that cannot expand even at the same tonal balance | Dynamic descriptor |
+| roughness that follows overload peaks | Dynamic `Distorted` or `Overdriven` |
+| buzz, rattle, crackle, dropout, or steady added noise | Integrity descriptor |
+
 ## Future DSP
 
 Future DSP that would make the dynamic vocabulary stronger:
@@ -896,7 +1044,7 @@ Keep this section at the end so descriptor design can be read first, then checke
 |---|---|---|
 | punchy | Spectral `Punchy` / `Impactful` | Dynamic `Snappy`, `Tight`, or `Responsive` if the attack/recovery is the real cue |
 | powerful | Spectral `Powerful` | Dynamic `Alive`, `Limited`, or future `Explosive` icon if the cue is contrast/headroom |
-| exciting | Spectral `Exciting` / `Hyped` | Dynamic `Lively`, `Alive`, or future `Explosive` icon if contrast and motion are the real cue |
+| exciting | Spectral `Exciting` | Dynamic `Lively`, `Alive`, or future `Explosive` icon if contrast and motion are the real cue |
 | dull attack | Dynamic `Softened` / `Blunted` | Spectral `Dull` if high-frequency detail is missing overall |
 | boomy or slow | Spectral `Boomy` | Dynamic `Loose` or `Sluggish` if the level/recovery drags after hits |
 | fatiguing loudness | Spectral `Fatiguing` / `Harsh` | Dynamic `Squashed`, `Breathless`, `Strained`, or `Overdriven` if the issue is constant pressure, limiting, or overload |

@@ -1,6 +1,8 @@
-# Spatial Descriptor Raw Materials
+# Spatial Descriptors
 
-This document defines a draft vocabulary for spatial aspects in audio system evaluation.
+This document is the source-of-truth for the Spatial descriptor module: position, image shape, width, distance, room impression, future separation vocabulary, candidate recipes, and implementation notes.
+
+The companion module files are `descriptor-spectral-descriptors.md`, `descriptor-dynamic-descriptors.md`, and `descriptor-integrity-descriptors.md`.
 
 It assumes training through stereo earbuds or headphones. That assumption matters: headphone playback makes left/right localization, image focus, stereo width, and depth cues more controllable than phone speakers or uncontrolled room playback.
 
@@ -9,7 +11,7 @@ Spatial descriptors are separate from spectral descriptors and dynamic descripto
 ```text
 Spectral = frequency balance and tone color.
 Dynamic = time behavior, compression, attack, release, and headroom.
-Spatial = position, image shape, width, separation, distance, and room impression.
+Spatial = position, image shape, width, distance, room impression, and later source separation.
 ```
 
 ## Boundary With Existing Spectral Descriptors
@@ -42,36 +44,70 @@ Current spatial scope:
 - Front/back and height are intentionally out of scope for the current app.
 - Headphones are preferred or required for depth-focused levels.
 
+Current online atlas slice:
+- `Anchorpoint Stage` is the first playable Spatial atlas region.
+- The MVP region now uses `Left`, `Right`, `Centered`, `Focused`, `Blurred`, and bridge ingredient `Wide` so the atlas region can open both image-focus discoveries.
+- Online Anchorpoint discoveries are `Precise` and `Diffuse`.
+- `Echoreach Halls` is now the second playable Spatial atlas region, using `Near`, `Far`, `Dry`, `Reverberant`, and bridge ingredient `Wide`.
+- Online Echoreach discoveries are `Intimate`, `Set Back`, and `Spacious`.
+- `Farspan Isles` remains future worldbuilding only and is not shown in the current atlas until the app has multi-source or stem-like training material for true separation and crowding.
+
 Current engine cues:
 
 | Cue | Current implementation role |
 |---|---|
-| `azimuthDeg` | Left/right position, clamped to `-90..+90 deg`. |
-| `depthNorm` | Near/far distance, clamped to `0..1`. |
-| `ITD` | Interaural time difference for left/right position. |
-| `ILD` | Interaural level difference for left/right position. |
+| stereo pan | Left/right position through `StereoPannerNode`. |
+| width matrix | Narrow/wide approximation through a mid-side-like channel matrix. |
 | direct level | Farther sounds are reduced in level. |
 | high-frequency rolloff | Farther sounds lose more top-end detail. |
 | reflection mix and delay | Farther sounds have more delayed reflected energy. |
-| mono pre-blend | Current engine collapses toward mono before spatialization for clearer training cues. |
+
+## MVP Region Art Direction
+
+Keep the aspect name as `Spatial`. The atlas regions inside Spatial should use game-world place names, with the perceptual axis preserved as the region theme:
+
+| Region | Theme | Image prompt |
+|---|---|
+| `Anchorpoint Stage` | position and image | Show a listening stage with a clear left side, right side, and calm centered beacon, using softly glowing side cliffs, a balanced central path, and a few focused sound motes placed in space. The image should communicate left/right/center placement and stable image focus without looking like a graph or diagram. |
+| `Echoreach Halls` | depth and space | Show a layered listening world with a close glowing sound sprite in the foreground, a smaller far sprite in the misty distance, and translucent room-like echo rings fading into arches behind them. The image should communicate near/far depth, dry directness, and reverberant space without simply looking dark or dull. |
+
+Future off-atlas region prompt:
+- `Farspan Isles`: show a broad open stereo landscape with several distinct glowing sound islands spread across the left and right sides, with visible air between them. Use wide horizon arcs, separated floating platforms, and clean gaps of negative space so the scene feels broad, sorted, and easy to inspect.
+
+Use full region prompt text from `descriptor-icon-design-language.md`, section `15.3 Spatial Region Icon Prompts`. Use Spatial descriptor card prompts from section `14.5 Spatial MVP Descriptor Card Prompts`.
 
 ## Vocabulary Shape
 
-Recommended current shape:
+MVP shape:
 
 | Type | Count | Purpose |
 |---|---:|---|
-| Basic cards | `13` | Playable spatial ingredients with one primary region each. |
-| Discovery cards | `8` | Recipe outcomes that combine basics. |
+| Basic cards | `11` | Playable spatial ingredients that can manifest with current single-track DSP. |
+| Discovery cards | `5` | Recipe outcomes that combine technically audible basics. |
 | Alias / outcome icons | open | Extra vocabulary can have icons without becoming separate playable basics. |
 
-Basic spatial vocabulary:
+MVP basic spatial vocabulary:
 
 ```text
 Left, Right, Centered, Focused, Blurred,
-Wide, Narrow, Separated, Crowded,
+Wide, Narrow,
 Near, Far, Dry, Reverberant
 ```
+
+Future/advanced spatial vocabulary:
+
+```text
+Separated, Crowded
+```
+
+## Learn Gates
+
+Learn gates use physical/listening-control names rather than atlas place names. The atlas is where descriptor chemistry and discoveries live. For MVP, Spatial should use two gates.
+
+| Gate | Physical property | Basic cards |
+|---|---|---|
+| `Position Gate` | where the source is placed | `Left`, `Right`, `Centered`, `Near`, `Far` |
+| `Image Gate` | image outline, field size, and room envelope | `Focused`, `Blurred`, `Wide`, `Narrow`, `Dry`, `Reverberant` |
 
 ## Spatial Axes
 
@@ -82,15 +118,17 @@ Spatial descriptors should be grouped by perceptual axis, not frequency range.
 | Position | Where does the source sit left-to-right? | left, right, centered |
 | Image focus | Is the source sharply placed or smeared? | focused, blurred, precise, diffuse |
 | Width | How wide is the sound field? | wide, narrow, panoramic, boxed in |
-| Separation | Can individual parts be distinguished in space? | separated, crowded |
 | Depth | Is the source close or set back? | near, far, intimate, set back |
 | Room impression | How much room or reflection surrounds the sound? | dry, reverberant, spacious |
+| Future separation | Can individual parts be distinguished in space? | separated, crowded |
 
 ## Spatial Regions And Roadmap
 
-The atlas uses three regions. Every basic descriptor has one primary home. Recipes can bridge regions because spatial perception often combines position, width, focus, depth, and room cues.
+The MVP atlas currently shows two online Spatial regions: `Anchorpoint Stage` and `Echoreach Halls`. `Farspan Isles` stays out of the current atlas and remains in the world plan as a future region for separation and multi-source spacing.
 
-### Region 1: Position And Image
+Recipes can bridge regions because spatial perception often combines position, width, focus, depth, and room cues. In MVP, `Wide` and `Narrow` are active Image Gate basics, but Farspan should not become a full region until separation/crowding can be demonstrated honestly.
+
+### Region 1: Anchorpoint Stage
 
 Theme: where the sound is placed and how clearly it is imaged.
 
@@ -100,6 +138,15 @@ Elements involved:
 - `Centered`
 - `Focused`
 - `Blurred`
+- `Wide`
+
+Online MVP elements:
+- `Left`
+- `Right`
+- `Centered`
+- `Focused`
+- `Blurred`
+- bridge ingredient: `Wide`
 
 Roadmap:
 
@@ -114,7 +161,7 @@ Wide + Blurred
 ```
 
 Bridge recipes:
-- `Holographic` uses `Focused` plus width/separation and space cues.
+- Future `Holographic` uses `Focused` plus width/separation and space cues.
 - `Diffuse` uses `Blurred` plus width.
 
 Table:
@@ -126,6 +173,7 @@ Table:
 | Element | `Centered` | basic | source sits in the middle |
 | Element | `Focused` | basic | source has a clear, stable image |
 | Element | `Blurred` | basic | source image is smeared or unstable |
+| Bridge element | `Wide` | basic | larger lateral field used by `Diffuse` |
 | Combo | `Precise` | `Centered + Focused` | stable, clear center image |
 | Combo | `Diffuse` | `Wide + Blurred` | spread out but less focused |
 
@@ -134,15 +182,64 @@ Design notes:
 - `Focused` and `Blurred` should be taught after position basics, not before.
 - Use mono or near-mono source material for early position training.
 
-### Region 2: Width And Separation
+### Region 2: Echoreach Halls
+
+Status: online-ready after Anchorpoint.
+
+Theme: how close/far the sound feels and how much room surrounds it.
+
+Elements involved:
+- `Near`
+- `Far`
+- `Dry`
+- `Reverberant`
+- bridge ingredient: `Wide`
+
+Roadmap:
+
+```text
+Near + Dry
+      |
+  Intimate
+
+Far + Reverberant
+      |
+  Set Back
+
+Wide + Reverberant
+      |
+  Spacious
+```
+
+Table:
+
+| Stage | Card | Recipe | Role |
+|---|---|---|---|
+| Element | `Near` | basic | source feels close and direct |
+| Element | `Far` | basic | source feels set back |
+| Element | `Dry` | basic | little room or reflection |
+| Element | `Reverberant` | basic | more room/reflection around the sound |
+| Bridge element | `Wide` | basic | larger lateral field used by `Spacious` |
+| Combo | `Intimate` | `Near + Dry` | close, direct presentation |
+| Combo | `Set Back` | `Far + Reverberant` | farther away with room around it |
+| Combo | `Spacious` | `Wide + Reverberant` | large open scene impression |
+
+Design notes:
+- This region maps well to the current distance/reflection implementation.
+- `Dry` and `Reverberant` are partly available through current reflection mix, but a future reverb module would make them stronger.
+- `Far` must be taught against spectral `Distant`, because both can make the listener say "far away."
+
+### Future Off-Atlas Region: Farspan Isles
+
+Status: future/off-atlas until multi-source or stem-like training exists.
 
 Theme: how broad the sound field is and how much space exists between parts.
 
 Elements involved:
 - `Wide`
 - `Narrow`
-- `Separated`
-- `Crowded`
+- future `Separated`
+- future `Crowded`
 
 Roadmap:
 
@@ -167,82 +264,41 @@ Table:
 |---|---|---|---|
 | Element | `Wide` | basic | sound field extends outward |
 | Element | `Narrow` | basic | sound field collapses inward |
-| Element | `Separated` | basic | parts are easier to distinguish spatially |
-| Element | `Crowded` | basic | parts overlap spatially or feel bunched together |
-| Combo | `Panoramic` | `Wide + Separated` | broad field with clear spacing |
-| Combo | `Boxed In` | `Narrow + Crowded` | cramped, small spatial field |
+| Future element | `Separated` | advanced | parts are easier to distinguish spatially |
+| Future element | `Crowded` | advanced | parts overlap spatially or feel bunched together |
+| Future combo | `Panoramic` | `Wide + Separated` | broad field with clear spacing |
+| Future combo | `Boxed In` | `Narrow + Crowded` | cramped, small spatial field |
 
 Design notes:
 - This region is more reliable with stereo material than mono material.
 - It likely needs stereo width, correlation, crossfeed, or decorrelation DSP for strong implementation.
+- `Separated` and `Crowded` should not be active MVP basics because they collapse into `Wide` and `Narrow` without multi-source material.
 - Avoid the word `Congested` here because it already belongs to the spectral atlas.
-
-### Region 3: Depth And Space
-
-Theme: how close/far the sound feels and how much room surrounds it.
-
-Elements involved:
-- `Near`
-- `Far`
-- `Dry`
-- `Reverberant`
-
-Roadmap:
-
-```text
-Near + Dry
-      |
-  Intimate
-
-Far + Reverberant
-      |
-  Set Back
-
-Wide + Reverberant
-      |
-  Spacious
-```
-
-Bridge recipes:
-- `Spacious` bridges width and room impression.
-- `Holographic` uses focus, separation, and spaciousness.
-
-Table:
-
-| Stage | Card | Recipe | Role |
-|---|---|---|---|
-| Element | `Near` | basic | source feels close and direct |
-| Element | `Far` | basic | source feels set back |
-| Element | `Dry` | basic | little room or reflection |
-| Element | `Reverberant` | basic | more room/reflection around the sound |
-| Combo | `Intimate` | `Near + Dry` | close, direct presentation |
-| Combo | `Set Back` | `Far + Reverberant` | farther away with room around it |
-| Combo | `Spacious` | `Wide + Reverberant` | large open scene impression |
-
-Design notes:
-- This region maps well to the current `depthNorm` implementation.
-- `Dry` and `Reverberant` are partly available through current reflection mix, but a future reverb module would make them stronger.
-- `Far` must be taught against spectral `Distant`, because both can make the listener say "far away."
 
 ## Core Descriptor Catalog
 
-These are candidate spatial cards. They should not be treated as final implementation data yet.
+These are the MVP active spatial cards.
 
 | ID | Label | Primary region | Summary | Listen for | Aliases / icon variants |
 |---|---|---|---|---|---|
-| `left` | `Left` | Position And Image | Source sits left of center. | Vocal, click, snare, or lead line pulling to the left. | left-shifted |
-| `right` | `Right` | Position And Image | Source sits right of center. | Vocal, click, snare, or lead line pulling to the right. | right-shifted |
-| `centered` | `Centered` | Position And Image | Source locks into the middle. | Lead vocal, mono snare, bass, or kick anchored in the center. | center, anchored |
-| `focused` | `Focused` | Position And Image | Source has a clear and stable image. | Vocal or instrument is easy to point at. | sharp image, stable |
-| `blurred` | `Blurred` | Position And Image | Source image is smeared or unstable. | Vocal/instrument spreads without a clear location. | fuzzy, smeared |
-| `wide` | `Wide` | Width And Separation | Sound field extends outward. | Sides feel open; stereo elements reach farther left/right. | broad, expanded |
-| `narrow` | `Narrow` | Width And Separation | Sound field collapses inward. | Stereo picture feels small or close to mono. | collapsed, small |
-| `separated` | `Separated` | Width And Separation | Parts are easier to distinguish spatially. | Instruments occupy distinct places. | spaced, sorted |
-| `crowded` | `Crowded` | Width And Separation | Parts overlap spatially or feel bunched together. | Instruments bunch up and are harder to locate separately. | clustered, overlapped |
-| `near` | `Near` | Depth And Space | Source feels close and direct. | Vocal or instrument feels close to the head/face. | close, upfront |
-| `far` | `Far` | Depth And Space | Source feels set back. | Vocal/instrument recedes; directness decreases. | recessed, remote |
-| `dry` | `Dry` | Depth And Space | Little room or reflection surrounds the sound. | Direct sound with minimal tail or ambience. | direct, roomless |
-| `reverberant` | `Reverberant` | Depth And Space | More room/reflection surrounds the sound. | Room tails, ambience, and reflected energy. | roomy, echoing |
+| `left` | `Left` | Anchorpoint Stage | Source sits left of center. | Vocal, click, snare, or lead line pulling to the left. | left-shifted |
+| `right` | `Right` | Anchorpoint Stage | Source sits right of center. | Vocal, click, snare, or lead line pulling to the right. | right-shifted |
+| `centered` | `Centered` | Anchorpoint Stage | Source locks into the middle. | Lead vocal, mono snare, bass, or kick anchored in the center. | center, anchored |
+| `focused` | `Focused` | Anchorpoint Stage | Source has a clear and stable image. | Vocal or instrument is easy to point at. | sharp image, stable |
+| `blurred` | `Blurred` | Anchorpoint Stage | Source image is smeared or unstable. | Vocal/instrument spreads without a clear location. | fuzzy, smeared |
+| `wide` | `Wide` | bridge / future Farspan Isles | Sound field extends outward. | Sides feel open; stereo elements reach farther left/right. | broad, expanded |
+| `narrow` | `Narrow` | bridge / future Farspan Isles | Sound field collapses inward. | Stereo picture feels small or close to mono. | collapsed, small |
+| `near` | `Near` | Echoreach Halls | Source feels close and direct. | Vocal or instrument feels close to the head/face. | close, upfront |
+| `far` | `Far` | Echoreach Halls | Source feels set back. | Vocal/instrument recedes; directness decreases. | recessed, remote |
+| `dry` | `Dry` | Echoreach Halls | Little room or reflection surrounds the sound. | Direct sound with minimal tail or ambience. | direct, roomless |
+| `reverberant` | `Reverberant` | Echoreach Halls | More room/reflection surrounds the sound. | Room tails, ambience, and reflected energy. | roomy, echoing |
+
+Future spatial cards:
+
+| ID | Label | Future region | Summary | Why deferred |
+|---|---|---|---|---|
+| `separated` | `Separated` | Farspan Isles | Parts are easier to distinguish spatially. | Needs multi-source or stem-like material. |
+| `crowded` | `Crowded` | Farspan Isles | Parts overlap spatially or feel bunched together. | Needs multi-source or dense controllable material. |
 
 ## Descriptor Detail Notes
 
@@ -362,7 +418,7 @@ Implementation note:
 - Feasible now through mono blend behavior if exposed as a control.
 - Stronger with dedicated stereo-width control.
 
-### Separated
+### Future: Separated
 
 Player-facing meaning:
 - Instruments have room between them.
@@ -376,10 +432,11 @@ Best material:
 - Stereo mixes with several instruments, sparse arrangements, acoustic ensembles.
 
 Implementation note:
-- Partly feasible now with stereo material and width/focus controls.
+- Do not use as an active MVP basic.
+- It collapses into `Wide` if applied as a single global stereo-width effect.
 - Stronger with multi-source test scenes or stem-based examples.
 
-### Crowded
+### Future: Crowded
 
 Player-facing meaning:
 - Parts feel bunched together.
@@ -393,7 +450,8 @@ Best material:
 - Dense mixes, layered vocals/guitars, ensemble passages.
 
 Implementation note:
-- Partly feasible with narrow/blurred settings and dense stereo material.
+- Do not use as an active MVP basic.
+- It collapses into `Narrow` or `Blurred` if applied as a single global effect.
 - Stronger with multi-source scenes.
 
 ### Near
@@ -471,22 +529,27 @@ Recipe labels should name a recognizable spatial state. Ingredient descriptors s
 
 | ID | Discovery | Ingredients | Tier | Primary region | Meaning | Technical feasibility |
 |---|---|---|---|---|---|---|
-| `precise` | `Precise` | `Centered + Focused` | Combo | Position And Image | Stable, clear center image. | Feasible now for centered source; stronger with image-focus controls. |
-| `diffuse` | `Diffuse` | `Wide + Blurred` | Combo | Position And Image | Spread out but unfocused. | Partial now; stronger with decorrelation/width DSP. |
-| `panoramic` | `Panoramic` | `Wide + Separated` | Combo | Width And Separation | Broad scene with clear spacing. | Partial now; stronger with stereo width and multi-source scenes. |
-| `boxed_in` | `Boxed In` | `Narrow + Crowded` | Combo | Width And Separation | Cramped, small spatial field. | Partial now; feasible with mono blend/narrowing. |
-| `intimate` | `Intimate` | `Near + Dry` | Combo | Depth And Space | Close, direct presentation. | Feasible now. |
-| `set_back` | `Set Back` | `Far + Reverberant` | Combo | Depth And Space | Farther away with room around it. | Feasible now as approximation. |
-| `spacious` | `Spacious` | `Wide + Reverberant` | Combo | Depth And Space | Large open scene impression. | Partial now; stronger with reverb/width DSP. |
-| `holographic` | `Holographic` | `Focused + Separated + Spacious` | Big combo | Width And Separation | Focused, separated, and spacious image. | Future-facing; requires stronger spatial DSP. |
+| `precise` | `Precise` | `Centered + Focused` | Combo | Anchorpoint Stage | Stable, clear center image. | Feasible now for centered source; stronger with image-focus controls. |
+| `diffuse` | `Diffuse` | `Wide + Blurred` | Combo | Anchorpoint Stage | Spread out but unfocused. | Partial now; stronger with decorrelation/width DSP. |
+| `intimate` | `Intimate` | `Near + Dry` | Combo | Echoreach Halls | Close, direct presentation. | Feasible now. |
+| `set_back` | `Set Back` | `Far + Reverberant` | Combo | Echoreach Halls | Farther away with room around it. | Feasible now as approximation. |
+| `spacious` | `Spacious` | `Wide + Reverberant` | Combo | Echoreach Halls | Large open scene impression. | Partial now; stronger with reverb/width DSP. |
+
+Future/deferred recipes:
+
+| ID | Discovery | Ingredients | Tier | Future region | Meaning | Why deferred |
+|---|---|---|---|---|---|---|
+| `panoramic` | `Panoramic` | `Wide + Separated` | Combo | Farspan Isles | Broad scene with clear spacing. | Needs true separation, not only width. |
+| `boxed_in` | `Boxed In` | `Narrow + Crowded` | Combo | Farspan Isles | Cramped, small spatial field. | Needs true crowding, not only narrowing. |
+| `holographic` | `Holographic` | `Focused + Separated + Spacious` | Big combo | Farspan Isles | Focused, separated, and spacious image. | Needs stronger spatial rendering and likely multi-source material. |
 
 ### Region Recipe Map
 
 | Region | Internal recipes | Bridge recipes |
 |---|---|---|
-| Position And Image | `Precise` | `Diffuse`, `Holographic` |
-| Width And Separation | `Panoramic`, `Boxed In` | `Diffuse`, `Spacious`, `Holographic` |
-| Depth And Space | `Intimate`, `Set Back` | `Spacious`, `Holographic` |
+| Anchorpoint Stage | `Precise` | `Diffuse`, future `Holographic` |
+| Echoreach Halls | `Intimate`, `Set Back` | `Spacious`, future `Holographic` |
+| Farspan Isles | future `Panoramic`, future `Boxed In` | future `Holographic` |
 
 ### Combo Recipe Details
 
@@ -524,7 +587,7 @@ Implementation:
 Good A/B prompt:
 - Which sample spreads out but becomes harder to locate precisely?
 
-#### Panoramic
+#### Future: Panoramic
 
 Player-facing identity:
 - The scene feels broad and well laid out.
@@ -541,7 +604,7 @@ Implementation:
 Good A/B prompt:
 - Which sample feels broader while still keeping parts apart?
 
-#### Boxed In
+#### Future: Boxed In
 
 Player-facing identity:
 - The image feels small, cramped, and bunched up.
@@ -609,7 +672,7 @@ Good A/B prompt:
 
 ### Big Combo Recipe Details
 
-#### Holographic
+#### Future: Holographic
 
 Player-facing identity:
 - The image feels dimensional, separated, and easy to inspect.
@@ -631,10 +694,10 @@ Good A/B prompt:
 
 | Higher card | Contains lower card(s) | Evolution reading |
 |---|---|---|
-| `Holographic` | `Spacious`, conceptual bridge from `Precise` and `Panoramic` | A convincing image needs space, separation, and focus. |
+| Future `Holographic` | `Spacious`, conceptual bridge from `Precise` and future `Panoramic` | A convincing image needs space, separation, and focus. |
 | `Spacious` | none directly, but bridges `Wide` and `Reverberant` | Space is not just width or reverb; it is both. |
 | `Diffuse` | conceptual opposite of `Precise` | Width without focus becomes diffuse. |
-| `Boxed In` | conceptual opposite of `Panoramic` | Narrowing plus crowding removes the open scene. |
+| Future `Boxed In` | conceptual opposite of future `Panoramic` | Narrowing plus crowding removes the open scene. |
 
 Recipe guardrails:
 - Do not let discovery cards add hidden DSP unless the player can inspect the underlying recipe.
@@ -654,12 +717,17 @@ Recipe guardrails:
 | `Blurred` | partial | Reflection/decorrelation smear, future stereo decorrelation. |
 | `Wide` | partial | Needs stereo width or side-energy control. |
 | `Narrow` | partial/feasible | Mono blend or width reduction. |
-| `Separated` | partial | Needs stereo material or multi-source scenes. |
-| `Crowded` | partial | Narrowing plus blurred/multi-source overlap. |
 | `Near` | feasible | Low depth, high direct level, little HF loss, low reflection. |
 | `Far` | feasible | High depth, lower level, HF rolloff, more reflection. |
 | `Dry` | partial/feasible | Minimize reflection/reverb energy. |
 | `Reverberant` | partial | Reflection mix now; future reverb for stronger examples. |
+
+Future basics:
+
+| Descriptor | Current implementation status | Suggested future DSP approach |
+|---|---|---|
+| `Separated` | deferred | Multi-source or stem-based scenes with distinct positions. |
+| `Crowded` | deferred | Multi-source scenes with controlled overlap/narrowing. |
 
 ### Recipe Feasibility
 
@@ -667,11 +735,11 @@ Recipe guardrails:
 |---|---|---|
 | `Precise` | yes/partial | Works for center source; focus controls would improve it. |
 | `Diffuse` | partial | Needs width/decorrelation for clear examples. |
-| `Panoramic` | partial | Needs stereo width and source separation cues. |
-| `Boxed In` | partial | Can approximate with mono blend/narrowing. |
 | `Intimate` | yes | Current depth/reflection model can support it. |
 | `Set Back` | yes/partial | Current depth model can approximate; real reverb improves it. |
 | `Spacious` | partial | Needs width plus room/reverb. |
+| `Panoramic` | future | Needs stereo width and source separation cues. |
+| `Boxed In` | future | Needs source crowding, not only mono blend/narrowing. |
 | `Holographic` | future | Needs stronger spatial rendering and likely multi-source material. |
 
 ### Recommended Profile Strategy
@@ -696,7 +764,6 @@ Example profiles for exploration, not final calibration:
 | `Far` | `0 deg` | `1.0` | default | high | set back |
 | `Intimate` | `0 deg` | `0.0` | narrow/center | very low | close and dry |
 | `Set Back` | `0 deg` | `1.0` | default | high | far and roomy |
-| `Boxed In` | `0 deg` | `0.3` | narrow | low/medium | cramped image |
 | `Spacious` | `0 deg` | `0.6` | wide | medium/high | open space |
 
 Calibration notes:
@@ -717,7 +784,7 @@ Recommended alias/outcome icon mapping:
 | `Pinpoint` | `Precise` | Focused localization variant. |
 | `Stable` | `Focused` / `Precise` | Image stability variant. |
 | `Fuzzy` | `Blurred` | Casual blur variant. |
-| `Clustered` | `Crowded` | Crowding variant. |
+| `Clustered` | future `Crowded` | Crowding variant. |
 | `Recessed` | `Far` / `Set Back` | Depth variant. |
 | `Remote` | `Far` | More extreme distance variant. |
 | `Roomy` | `Reverberant` / `Spacious` | Room impression variant. |
@@ -729,22 +796,22 @@ Useful A/B questions:
 - Which sample is farther left or right?
 - Which sample has the clearer center image?
 - Which sample feels wider?
-- Which sample makes the parts easier to separate?
 - Which sample feels closer?
 - Which sample has more room around it?
 
 Useful source material:
 - Mono vocal or click for left/right/center.
 - Dry voice for near/far and dry/reverberant.
-- Stereo acoustic or pop mixes for width and separation.
-- Sparse arrangements for focus and separation.
-- Dense mixes for crowded/boxed-in comparisons.
+- Stereo acoustic or pop mixes for width.
+- Sparse arrangements for focus.
+- Future multi-source/stem scenes for separated/crowded comparisons.
 
 Testing cautions:
 - Headphones or earbuds should be required for spatial training.
 - Stereo widening can alter tone, so watch for spectral confusion.
 - Reverb can make sounds seem both farther and duller; teach `Far` against spectral `Distant`.
 - Some spatial words depend on the source mix. A mono source cannot demonstrate separation well.
+- Do not ship `Separated` or `Crowded` as active basics until the app can manifest them beyond `Wide` and `Narrow`.
 - Keep front/back and height out of the first playable vocabulary unless the DSP supports those cues.
 
 ## Future DSP
@@ -780,9 +847,9 @@ Keep this section at the end so descriptor design can be read first, then checke
 |---|---|---|
 | distant | Spectral `Distant` if center body/detail is cut | Spatial `Far` or `Set Back` if distance cues are rendered |
 | airy | Spectral `Airy` if the top octave is lifted | Spatial `Spacious` or `Wide` if the image/room is larger |
-| congested | Spectral `Congested` if masking/EQ is the issue | Spatial `Crowded` or `Boxed In` if sources overlap spatially |
+| congested | Spectral `Congested` if masking/EQ is the issue | Future spatial `Crowded` or `Boxed In` if sources overlap spatially |
 | hollow | Spectral `Hollow` if the center body is scooped | Spatial `Far`, `Reverberant`, or `Set Back` if depth/room creates distance |
 | focused | Spatial `Focused` if the source is easier to locate | Spectral clarity if detail/treble makes it easier to hear |
 | wide | Spatial `Wide` if the left/right image expands | Spectral `Exciting`/`Airy` if brightness creates perceived openness |
-| separated | Spatial `Separated` if locations are clearer | Spectral reduced masking if frequency balance makes parts clearer |
+| separated | Future spatial `Separated` if locations are clearer | Spectral reduced masking if frequency balance makes parts clearer |
 | intimate | Spatial `Near + Dry` | Spectral `Warm`/`Full` if closeness comes from body rather than distance |

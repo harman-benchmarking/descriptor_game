@@ -1,0 +1,7 @@
+interface:
+  display_name: "Descriptor Image Style"
+  short_description: "Project image prompt style"
+  default_prompt: "Use $descriptor-image-style to generate or revise Descriptor Game image prompts in the established storybook audio-metaphor style."
+
+policy:
+  allow_implicit_invocation: true

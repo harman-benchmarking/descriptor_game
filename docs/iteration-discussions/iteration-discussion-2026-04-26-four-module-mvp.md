@@ -20,6 +20,15 @@ The game should use a four-continent world structure.
 | `Dynamic` | Attack, recovery, compression, headroom | How does the sound move over time? |
 | `Integrity` | Noise, defects, faults, artifacts | What unwanted sound or failure is present? |
 
+Recommended MVP region prompt sets:
+
+| Module | Keep aspect name | Internal atlas regions |
+|---|---|---|
+| `Spectral` | `Spectral` | `Thunderstep Highlands`, `Emberbody Valley`, `Resonance Canyons`, `Masking Mire`, `Frosthollow Expanse`, `Scoopshine Basin`, `Glassedge Spires` |
+| `Spatial` | `Spatial` | `Anchorpoint Stage`, `Echoreach Halls`, future `Farspan Isles` |
+| `Dynamic` | `Dynamic` | `Snapback Springs`, `Pressureflow Basin`, `Ceilingbreak Spires` |
+| `Integrity` | `Integrity` | `Staticveil Fen`, `Glitchgap Rift`, `Rattleforge Yards` |
+
 Each continent has its own Learn gates and its own atlas.
 
 Important rule:
@@ -174,9 +183,9 @@ Atlas regions:
 | `Emberbody Valley` | fullness, warmth, mellow body |
 | `Resonance Canyons` | boxy, cupped, canned color |
 | `Masking Mire` | congestion, masking, burial |
-| `Glassedge Spires` | harshness, bite, fatigue |
-| `Scoopshine Basin` | smile curve, crispness, hype |
 | `Frosthollow Expanse` | hollow, distant, cold space |
+| `Scoopshine Basin` | smile curve, crispness, hype |
+| `Glassedge Spires` | harshness, bite, fatigue |
 
 Runtime DSP:
 
@@ -188,29 +197,34 @@ Runtime DSP:
 
 Status: feasible for MVP, but needs stereo-focused track material.
 
-Possible Learn gates:
+Implemented Learn gates:
 
 | Gate | Basic cards |
 |---|---|
-| `Position And Image Gate` | `Left`, `Right`, `Centered`, `Focused`, `Blurred` |
-| `Width And Separation Gate` | `Wide`, `Narrow`, `Separated`, `Crowded` |
-| `Depth And Space Gate` | `Near`, `Far`, `Dry`, `Reverberant` |
+| `Position Gate` | `Left`, `Right`, `Centered`, `Near`, `Far` |
+| `Image Gate` | `Focused`, `Blurred`, `Wide`, `Narrow`, `Dry`, `Reverberant` |
+
+Gate names are physical/listening-control categories. Atlas region names stay separate because regions describe descriptor chemistry and discovery relationships.
+
+`Separated` and `Crowded` are kept as future Spatial vocabulary, not active MVP basics. As single global DSP effects, they collapse into `Wide` and `Narrow`; they need multi-source or stem-like training material.
 
 Atlas regions:
 
+Image prompts should be attached to the three Spatial regions below, not to a renamed top-level continent.
+
 | Region | Theme |
 |---|---|
-| `Position And Image` | placement and image clarity |
-| `Width And Separation` | scene size and spacing between parts |
-| `Depth And Space` | closeness, distance, room, reflection |
+| `Anchorpoint Stage` | placement and image clarity |
+| `Echoreach Halls` | closeness, distance, room, reflection |
+| `Farspan Isles` | future scene size and spacing between parts |
 
 Runtime DSP:
 
 - Stereo panning for `Left`, `Right`, `Centered`.
 - Mid/side gain or channel split/merge for `Wide` and `Narrow`.
-- Short delays, decorrelation, or crossfeed for separation/blur.
 - Convolver or delay/reverb send for `Dry` and `Reverberant`.
 - Gain, filtering, and early reflection balance for `Near` and `Far`.
+- Multi-source or stem-like scenes later for `Separated` and `Crowded`.
 
 MVP caution:
 
@@ -222,21 +236,24 @@ MVP caution:
 
 Status: feasible for MVP, but needs careful loudness matching.
 
-Possible Learn gates:
+Current MVP Learn gates:
 
-| Gate | Basic cards |
-|---|---|
-| `Attack And Recovery Gate` | `Snappy`, `Softened`, `Blunted`, `Tight`, `Loose` |
-| `Compression And Motion Gate` | `Compressed`, `Squashed`, `Dense`, `Pumping`, `Breathing`, `Flat` |
-| `Headroom And Strain Gate` | `Lively`, `Constrained`, `Strained`, `Clipped`, `Distorted` |
+| Gate | Gift pair | First catch | Later unlocks |
+|---|---|---|---|
+| `Snapback Gate` | `Snappy`, `Softened` | `Loose` | `Tight` |
+| `Pressureflow Gate` | `Compressed`, `Pumping` | `Flat` | `Clipped`, `Distorted` |
+
+The earlier three-gate shape still maps well to the atlas regions, but `Overload And Headroom Gate` is too small for MVP Learn until `Lively`, `Constrained`, or `Strained` are promoted from later vocabulary.
 
 Atlas regions:
 
+Image prompts should be attached to the three Dynamic regions below, not to a renamed top-level continent.
+
 | Region | Theme |
 |---|---|
-| `Attack And Recovery` | how hits start, stop, and reset |
-| `Compression And Motion` | density, gain reduction, pumping, flattening |
-| `Headroom And Strain` | ease, overload, clipping, distortion |
+| `Snapback Springs` | how hits start, stop, and reset |
+| `Pressureflow Basin` | density, gain reduction, pumping, flattening |
+| `Ceilingbreak Spires` | clean headroom, overload, clipping, distortion |
 
 Runtime DSP:
 
@@ -266,11 +283,13 @@ Possible Learn gates:
 
 Atlas regions:
 
+Image prompts should be attached to the three Integrity regions below, not to a renamed top-level continent.
+
 | Region | Theme |
 |---|---|
-| `Noise And Interference` | broadband noise, tonal interference, contamination |
-| `Intermittent Defects` | short events, gaps, unstable contact |
-| `Mechanical And Speaker Faults` | physical vibration, squeak, driver rub |
+| `Staticveil Fen` | broadband noise, tonal interference, contamination |
+| `Glitchgap Rift` | short events, gaps, unstable contact |
+| `Rattleforge Yards` | physical vibration, squeak, driver rub |
 
 Runtime DSP:
 
@@ -448,6 +467,12 @@ Acceptance:
 ### Phase 4: First Non-Spectral Prototype
 
 Goal: prove the shared system works outside EQ.
+
+Implementation status as of 2026-04-27:
+
+- `Anchorpoint Stage` is the first non-Spectral atlas slice brought online.
+- It uses `Left`, `Right`, `Centered`, `Focused`, and `Blurred` as its first region card set.
+- It should open from the atlas when the Spatial Learn module basics are completed, independent from Spectral completion.
 
 Recommended first candidate: `Integrity`.
 

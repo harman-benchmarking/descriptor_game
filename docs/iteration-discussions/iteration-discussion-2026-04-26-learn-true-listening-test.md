@@ -14,6 +14,31 @@ The answer should come from listening first.
 
 The UI can name the learning target during teaching, but during the actual test the answer should not be printed directly on the option the user clicks.
 
+## Four-Module Update
+
+After adding `Spatial`, `Dynamic`, and `Integrity`, this design should no longer be treated as a spectral-only EQ test.
+
+The same high-level idea still works:
+
+- Teach the descriptor openly.
+- Practice it through blind A/B/C audio choices.
+- Reveal labels only after the learner answers.
+
+But the implementation must be module-aware because each module has a different way it can leak the answer:
+
+| Module | What the user is learning | Main leakage risk | MVP test rule |
+|---|---|---|---|
+| Spectral | Frequency-balance changes | EQ curve shape reveals the target | Hide or neutralize the curve during blind choice |
+| Spatial | Position, distance, and room | Source-position visualizer reveals left/right/near/far | Hide the source marker until after answer |
+| Dynamic | Attack, recovery, compression, motion, overload | Waveform/envelope display can show pumping, clipping, gaps, or flattening | Show a neutral motion meter before answer; reveal waveform after answer |
+| Integrity | Noise, ticks, dropouts, artifacts | Artifact timeline makes clicks, crackle, and dropout visible | Hide event markers before answer; reveal timeline after answer |
+
+My recommendation:
+
+- Keep one shared listening-test framework.
+- Give each module its own confuser table, visualizer policy, and short contrast hints.
+- Do not build four separate testing systems.
+
 ## Recommended Learn Structure
 
 Split Learn into three related modes:
@@ -26,7 +51,7 @@ Split Learn into three related modes:
 
 For the MVP, implement `Teach` plus `Practice` first. Save the stricter full `Test` mode for the next iteration after the blind comparison is stable.
 
-## MVP Recommendation: Blind A/B/C Practice
+## MVP Recommendation: Module-Aware Blind A/B/C Practice
 
 The first true test should be a blind A/B/C listening test.
 
@@ -40,6 +65,15 @@ Example:
 - The user must listen, then choose A, B, or C.
 
 This removes the current loophole while keeping the task approachable.
+
+For the four-module MVP, the same pattern should be used for every module, but the prompt wording should adapt:
+
+| Module | Prompt pattern | Example |
+|---|---|---|
+| Spectral | `Find {descriptor}.` | `Find Thump.` |
+| Spatial | `Where is the sound {descriptor}?` or `Find {descriptor}.` | `Find Left.` |
+| Dynamic | `Which version sounds {descriptor}?` | `Which version sounds Pumping?` |
+| Integrity | `Find the {descriptor} artifact.` | `Find the Dropout artifact.` |
 
 ## Why This Is Better
 
@@ -55,7 +89,7 @@ Wrong answers should be meaningful confusers, not random cards.
 
 Good confusers share frequency territory, perceptual family, or common real-world confusion with the target.
 
-Examples:
+Spectral examples:
 
 | Target | Better confusers | Weak confusers |
 |---|---|---|
@@ -70,6 +104,59 @@ My input:
 - Confusers are the real curriculum. They teach the border between descriptors.
 - A test with random unrelated choices feels fair but teaches less.
 - Each descriptor should eventually have a curated list of 3 to 5 confusers.
+
+## Module-Specific Confusers
+
+The non-spectral modules need their own confuser logic. Reusing spectral-style "near frequency" thinking would be misleading.
+
+### Spatial
+
+Spatial confusers should test axes:
+
+- Left/right/centered tests horizontal position.
+- Near/far tests depth and directness.
+- Dry/reverberant tests room field.
+
+Recommended MVP confusers:
+
+| Target | Better confusers | Notes |
+|---|---|---|
+| Left | Centered, Right | Requires headphones; do not show the source marker before answer |
+| Right | Centered, Left | Same axis as Left |
+| Centered | Left, Right | Useful anchor for lateral position |
+| Near | Far, Dry | Near can be confused with dry/direct sound |
+| Far | Near, Reverberant | Far can be confused with extra room |
+| Dry | Reverberant, Near | Dry is a room cue, not simply "close" |
+| Reverberant | Dry, Far | Reverb and distance overlap but are not identical |
+
+### Dynamic
+
+Dynamic confusers should test motion and envelope behavior:
+
+| Target | Better confusers | Notes |
+|---|---|---|
+| Snappy | Softened, Tight | Attack sharpness versus recovery control |
+| Softened | Snappy, Compressed | Rounded attack can be confused with level control |
+| Tight | Loose, Snappy | Recovery is different from attack |
+| Loose | Tight, Pumping | Loose recovery can feel like motion but should not duck cyclically |
+| Compressed | Flat, Softened | Compressed controls peaks; Flat removes expressive contrast |
+| Pumping | Compressed, Loose | Pumping is audible level duck-and-return |
+| Flat | Compressed, Softened | Flat has low dynamic contrast without obvious compressor movement |
+| Clipped | Distorted, Compressed | Clipped is hard peak damage and ceiling impact |
+| Distorted | Clipped, Pumping | Distorted roughness follows the signal; it is not necessarily a hard ceiling |
+
+### Integrity
+
+Integrity confusers should test artifact families:
+
+| Target | Better confusers | Notes |
+|---|---|---|
+| Hiss | Hum, Buzz | Continuous noise versus tonal interference |
+| Hum | Buzz, Hiss | Low steady tone versus rough harmonic tone |
+| Buzz | Hum, Crackle | Electrical roughness versus intermittent defects |
+| Click | Crackle, Dropout | Single event versus repeated events or missing audio |
+| Crackle | Click, Buzz | Clusters of small ticks versus steady roughness |
+| Dropout | Click, Crackle | Missing sound should be audible, not only visible |
 
 ## Suggested Unlock Rules
 
@@ -109,6 +196,7 @@ UI note:
 
 - The play action and the choose action should be separate.
 - If one click both plays and answers, the user cannot compare options properly.
+- For spatial, dynamic, and integrity, the module visualizer should stay neutral until the answer is submitted.
 
 ## Feedback Copy
 
@@ -124,19 +212,33 @@ Examples:
 
 Feedback should reveal labels only after the user chooses.
 
+Four-module feedback examples:
+
+| Module | Wrong-answer copy pattern |
+|---|---|
+| Spectral | `That was closer to Rumble. Thump is shorter and more impact-like.` |
+| Spatial | `That was closer to Centered. Left should pull the image clearly to the left side.` |
+| Dynamic | `That was closer to Compressed. Pumping should duck and return in a repeating motion.` |
+| Integrity | `That was closer to Click. Dropout should briefly remove part of the sound.` |
+
 ## Data Model Needed
 
 Add a small challenge definition layer.
 
-Possible TypeScript shape:
+The original shape should be expanded to include module-specific behavior:
 
 ```ts
 export type ListeningChallengeDefinition = {
+  moduleId: DescriptorModuleId;
+  gateId: GateId;
   targetId: string;
   confuserIds: string[];
   promptKey: string;
   correctHintKey: string;
   wrongHintKeys: Record<string, string>;
+  requiresHeadphones?: boolean;
+  visualizerPolicy: "hidden_until_answer" | "neutral_until_answer" | "safe_visible";
+  targetPreviewMode: "allowed_before_trial" | "practice_only" | "never";
 };
 ```
 
@@ -157,6 +259,7 @@ Important implementation detail:
 - Generate and store the trial in React state.
 - Do not reshuffle on every render.
 - Reshuffle only when starting a new trial.
+- Store the module id with the trial so preview playback chooses the correct DSP path and visualizer policy.
 
 ## Audio Behavior
 
@@ -170,6 +273,29 @@ After the user answers:
 
 - Keep the chosen sound active long enough for feedback.
 - If wrong, optionally add a `Play target` button so they can hear the contrast.
+- Reveal the module-specific visualizer only after the answer is submitted.
+- For Spatial, use a headphones recommendation before the test starts.
+- For Dynamic, use a transient-rich loop so attack, recovery, pumping, clipping, and distortion are actually audible.
+- For Integrity, use a clean enough loop or passage so hiss, hum, clicks, crackle, buzz, and dropout are not masked.
+
+## Visualizer Policy
+
+The visualizer is excellent for teaching, but risky for testing.
+
+Recommended policy:
+
+| Phase | Visualizer behavior |
+|---|---|
+| Teach | Show the full module visualizer |
+| Practice before answer | Show a neutral or hidden visualizer |
+| Practice after answer | Reveal the actual module visualizer |
+| Full Test mode | Keep visualizer hidden until the answer is submitted |
+
+This is especially important for:
+
+- Spatial: a source dot would reveal left/right/near/far immediately.
+- Dynamic: a waveform can reveal clipping, pumping, and flatness.
+- Integrity: a gap or artifact marker can reveal dropout/click/crackle visually.
 
 ## UI Recommendation
 
@@ -191,20 +317,22 @@ The test should avoid:
 - Reusing the same answer position repeatedly.
 - Making unrelated confusers that are too obvious.
 - Unlocking a descriptor from just opening its detail page.
+- Showing module-specific visual evidence that gives away the answer before listening.
 
 The goal is not to block developer tools or source inspection. The goal is to make normal gameplay require listening.
 
 ## Implementation Order
 
-1. Create `listeningChallenges.ts` with target/confuser definitions.
+1. Create `listeningChallenges.ts` with target/confuser definitions for all four modules.
 2. Add a trial generator that shuffles A/B/C choices.
-3. Replace the current `ChallengeBlock` answer buttons with blind audio option tiles.
-4. Add trial state to `LearnScreen` or a dedicated `ListeningChallengeBlock`.
-5. Add progress tracking for correct trials.
-6. Keep gift cards simple for now.
-7. Add feedback copy to locale JSON.
-8. Verify that correct answers are not visible before choosing.
-9. Add unit tests for trial generation and unlock thresholds.
+3. Add module-aware `visualizerPolicy` handling.
+4. Replace the current `ChallengeBlock` answer buttons with blind audio option tiles.
+5. Add trial state to `LearnScreen` or a dedicated `ListeningChallengeBlock`.
+6. Add progress tracking for correct trials.
+7. Keep gift cards simple for now.
+8. Add feedback copy to locale JSON.
+9. Verify that correct answers are not visible before choosing.
+10. Add unit tests for trial generation, confuser selection, visualizer policy, and unlock thresholds.
 
 ## Open Questions Before Coding
 
@@ -213,6 +341,9 @@ The goal is not to block developer tools or source inspection. The goal is to ma
 3. Should the user be allowed to hear the named target before entering the blind test?
 4. Should the full Test mode use named descriptor cards as answers, or stay fully unlabeled longer?
 5. Should the EQ curve be hidden during blind trials so it cannot reveal the answer visually?
+6. Should Spatial tests require headphones before the user can start?
+7. Should Dynamic and Integrity use different demo loops from Spectral for clearer audibility?
+8. Should the visualizer be completely hidden, or shown as a neutral "listening mode" surface before answer?
 
 ## My Preferred Defaults
 
@@ -221,4 +352,6 @@ The goal is not to block developer tools or source inspection. The goal is to ma
 - Teach mode lets the user hear the target before blind practice.
 - Practice uses A/B/C audio choices.
 - Full Test mode can come later.
-- Hide or simplify the EQ curve during blind trials if we want a stricter test, because the curve can become a visual answer key.
+- Hide or neutralize all module visualizers during blind trials, because the curve/stage/waveform/timeline can become a visual answer key.
+- Require a headphones recommendation for Spatial, but do not hard-block the test.
+- Use module-specific confusers from the beginning; this is the heart of the curriculum.

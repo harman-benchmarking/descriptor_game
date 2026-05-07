@@ -1,0 +1,192 @@
+.card-grid,
+.discovery-grid,
+.alias-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--descriptor-card-size, 154px), 1fr));
+  gap: 12px;
+}
+
+.descriptor-card,
+.discovery-card,
+.alias-card {
+  width: 100%;
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #141a1c;
+  color: var(--text);
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.descriptor-card:hover,
+.discovery-card:hover,
+.alias-card:hover,
+.descriptor-card:focus-within,
+.discovery-card:focus-within,
+.alias-card:focus-within {
+  transform: translateY(-2px);
+  border-color: var(--accent-2);
+}
+
+.descriptor-card.is-active,
+.discovery-card.is-active {
+  border-color: var(--accent);
+  background: #1d3029;
+}
+
+.descriptor-card.is-locked,
+.discovery-card.is-locked,
+.alias-card.is-locked {
+  opacity: 1;
+  filter: none;
+}
+
+.descriptor-card.is-compact {
+  min-height: 0;
+}
+
+.descriptor-card.is-compact .card-summary {
+  display: none;
+}
+
+.card-main-button {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 8px;
+  padding: 10px;
+  text-align: left;
+}
+
+.card-image-wrap {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  border-radius: 7px;
+  background:
+    linear-gradient(135deg, rgba(126, 214, 165, 0.18), rgba(242, 198, 109, 0.12)),
+    #0f1416;
+}
+
+.card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.card-corner-icon {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  color: #101417;
+  background: var(--accent-2);
+  border-radius: 999px;
+}
+
+.alias-card-type-mark {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  display: grid;
+  place-items: center;
+  color: #101417;
+  background: #f2c66d;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.26), 0 8px 18px rgba(0, 0, 0, 0.34);
+  pointer-events: none;
+}
+
+.alias-card-type-mark svg {
+  width: 16px;
+  height: 16px;
+}
+
+.alias-card .alias-lock-icon {
+  top: 40px;
+}
+
+.card-info-button {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: var(--text);
+  background: rgba(16, 20, 23, 0.78);
+}
+
+.card-info-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.card-title {
+  display: block;
+  font-weight: 760;
+  font-size: 17px;
+  line-height: 1.12;
+  letter-spacing: 0;
+}
+
+.card-summary {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.locked-orb {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0 8px, transparent 8px 16px),
+    linear-gradient(135deg, #222a2c, #14191b);
+}
+
+.mini-card-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--descriptor-card-size, 154px), 1fr));
+  align-items: stretch;
+}
+
+.mini-card-row .descriptor-card {
+  max-width: none;
+}
+
+@media (max-width: 560px) {
+  .card-grid,
+  .discovery-grid,
+  .alias-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .card-main-button {
+    padding: 8px;
+  }
+}
