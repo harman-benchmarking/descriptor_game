@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { readdirSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { preferredTrackForGate, trackDefinitions } from "../data/tracks";
+
+const testDir = dirname(fileURLToPath(import.meta.url));
 
 describe("track definitions", () => {
   it("uses daily reference loops as the primary spectral learn tracks", () => {
@@ -28,5 +33,16 @@ describe("track definitions", () => {
 
   it("points every track at a public audio asset", () => {
     expect(trackDefinitions.every((track) => track.src.startsWith("/audio/demo/"))).toBe(true);
+  });
+
+  it("includes every bundled demo wav in the track selector", () => {
+    const demoAudioDir = resolve(testDir, "../../public/audio/demo");
+    const bundledTracks = readdirSync(demoAudioDir)
+      .filter((fileName) => fileName.endsWith(".wav"))
+      .map((fileName) => `/audio/demo/${fileName}`)
+      .sort();
+    const configuredTracks = trackDefinitions.map((track) => track.src).sort();
+
+    expect(configuredTracks).toEqual(bundledTracks);
   });
 });

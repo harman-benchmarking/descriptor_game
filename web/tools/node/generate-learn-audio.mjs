@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const sampleRate = 44100;
 const webRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const outputDir = resolve(webRoot, "app", "public", "audio", "demo", "learn");
+const outputDir = resolve(webRoot, "app", "public", "audio", "demo");
 
 function createRng(seed) {
   let value = seed >>> 0;
@@ -348,4 +348,4 @@ writeWav("daily-spoken-center-loop.wav", generateSpokenCenter());
 writeWav("daily-acoustic-pop-loop.wav", generateAcousticPop());
 writeWav("daily-piano-guitar-loop.wav", generatePianoGuitar());
 
-console.log(`Generated Spectral Learn audio in ${outputDir}`);
+console.log(`Generated Spectral demo audio in ${outputDir}`);

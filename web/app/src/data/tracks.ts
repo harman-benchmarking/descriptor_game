@@ -11,7 +11,7 @@ export const trackDefinitions: TrackDefinition[] = [
   {
     id: "daily-drum-bass-groove-loop",
     labelKey: "track.dailyDrumBassGroove.label",
-    src: "/audio/demo/learn/daily-drum-bass-groove-loop.wav",
+    src: "/audio/demo/daily-drum-bass-groove-loop.wav",
     learnSuitability: {
       bass: "primary"
     }
@@ -19,7 +19,7 @@ export const trackDefinitions: TrackDefinition[] = [
   {
     id: "daily-spoken-center-loop",
     labelKey: "track.dailySpokenCenter.label",
-    src: "/audio/demo/learn/daily-spoken-center-loop.wav",
+    src: "/audio/demo/daily-spoken-center-loop.wav",
     learnSuitability: {
       mid: "primary",
       "spatial-position": "primary",
@@ -31,7 +31,7 @@ export const trackDefinitions: TrackDefinition[] = [
   {
     id: "daily-acoustic-pop-loop",
     labelKey: "track.dailyAcousticPop.label",
-    src: "/audio/demo/learn/daily-acoustic-pop-loop.wav",
+    src: "/audio/demo/daily-acoustic-pop-loop.wav",
     learnSuitability: {
       bass: "fallback",
       mid: "fallback",
@@ -41,7 +41,7 @@ export const trackDefinitions: TrackDefinition[] = [
   {
     id: "daily-piano-guitar-loop",
     labelKey: "track.dailyPianoGuitar.label",
-    src: "/audio/demo/learn/daily-piano-guitar-loop.wav",
+    src: "/audio/demo/daily-piano-guitar-loop.wav",
     learnSuitability: {
       treble: "fallback",
       "spatial-image": "primary"
@@ -56,6 +56,21 @@ export const trackDefinitions: TrackDefinition[] = [
     id: "region-a-loop",
     labelKey: "track.regionA.label",
     src: "/audio/demo/region-a-loop.wav"
+  },
+  {
+    id: "no-sanctuary-here",
+    labelKey: "track.noSanctuaryHere.label",
+    src: "/audio/demo/02. No Sanctuary Here.wav"
+  },
+  {
+    id: "shadow",
+    labelKey: "track.shadow.label",
+    src: "/audio/demo/04. Shadow.wav"
+  },
+  {
+    id: "fragments-of-time",
+    labelKey: "track.fragmentsOfTime.label",
+    src: "/audio/demo/06. Fragments of Time.wav"
   }
 ];
 

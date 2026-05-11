@@ -21,12 +21,15 @@ Current tracks:
 
 | Track id | Label | Source | Training suitability |
 |---|---|---|---|
-| `daily-drum-bass-groove-loop` | Daily drum and bass groove | `/audio/demo/learn/daily-drum-bass-groove-loop.wav` | primary for Bass Gate |
-| `daily-spoken-center-loop` | Daily spoken voice | `/audio/demo/learn/daily-spoken-center-loop.wav` | primary for Mid, Position, Contamination, Glitch; fallback for Image |
-| `daily-acoustic-pop-loop` | Daily acoustic pop | `/audio/demo/learn/daily-acoustic-pop-loop.wav` | primary for Treble; fallback for Bass and Mid |
-| `daily-piano-guitar-loop` | Daily piano and guitar | `/audio/demo/learn/daily-piano-guitar-loop.wav` | primary for Image; fallback for Treble |
+| `daily-drum-bass-groove-loop` | Daily drum and bass groove | `/audio/demo/daily-drum-bass-groove-loop.wav` | primary for Bass Gate |
+| `daily-spoken-center-loop` | Daily spoken voice | `/audio/demo/daily-spoken-center-loop.wav` | primary for Mid, Position, Contamination, Glitch; fallback for Image |
+| `daily-acoustic-pop-loop` | Daily acoustic pop | `/audio/demo/daily-acoustic-pop-loop.wav` | primary for Treble; fallback for Bass and Mid |
+| `daily-piano-guitar-loop` | Daily piano and guitar | `/audio/demo/daily-piano-guitar-loop.wav` | primary for Image; fallback for Treble |
 | `jpop-reference-loop` | J-pop reference loop | `/audio/demo/jpop-reference-loop.wav` | no Training Grounds gate suitability |
 | `region-a-loop` | Thunderstep demo loop | `/audio/demo/region-a-loop.wav` | no Training Grounds gate suitability |
+| `no-sanctuary-here` | No Sanctuary Here | `/audio/demo/02. No Sanctuary Here.wav` | no Training Grounds gate suitability |
+| `shadow` | Shadow | `/audio/demo/04. Shadow.wav` | no Training Grounds gate suitability |
+| `fragments-of-time` | Fragments of Time | `/audio/demo/06. Fragments of Time.wav` | no Training Grounds gate suitability |
 
 ## Spectral Audio
 

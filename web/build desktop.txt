@@ -1,0 +1,2 @@
+cd web/app
+npm.cmd run desktop:dist

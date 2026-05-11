@@ -44,12 +44,12 @@ This set is intentionally small. It gives the game enough source variety without
 Suggested file paths:
 
 ```text
-/audio/demo/learn/daily-spoken-center-loop.wav
-/audio/demo/learn/daily-acoustic-pop-loop.wav
-/audio/demo/learn/daily-drum-bass-groove-loop.wav
-/audio/demo/learn/daily-piano-guitar-loop.wav
-/audio/demo/learn/daily-stereo-room-loop.wav
-/audio/demo/learn/daily-quiet-voice-roomtone-loop.wav
+/audio/demo/daily-spoken-center-loop.wav
+/audio/demo/daily-acoustic-pop-loop.wav
+/audio/demo/daily-drum-bass-groove-loop.wav
+/audio/demo/daily-piano-guitar-loop.wav
+/audio/demo/daily-stereo-room-loop.wav
+/audio/demo/daily-quiet-voice-roomtone-loop.wav
 ```
 
 ## Gate-To-Track Plan
