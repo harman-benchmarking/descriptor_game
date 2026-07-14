@@ -245,6 +245,8 @@
   "listening.nextTrial": "New trial",
   "listening.hiddenOption": "Hidden option",
   "listening.unlockedPractice": "Unlocked. You can still use this as practice.",
+  "listening.previewRequired": "Play at least one option before choosing an answer.",
+  "listening.previewFailed": "Playback could not start. Try Play again; choosing stays locked until audio starts.",
   "tower.heading": "Calibration Tower",
   "tower.firstFloor": "First Floor",
   "tower.firstFloor.short": "Floor 1",

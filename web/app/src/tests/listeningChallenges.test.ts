@@ -5,10 +5,10 @@ import { createListeningTrial, listeningChallengeFor } from "../learn/listeningC
 
 describe("listening challenges", () => {
   it("defines blind challenges for bass gate catch cards", () => {
-    expect(listeningChallengeFor("bass", "thump")?.confuserIds).toEqual(["boomy", "thin"]);
-    expect(listeningChallengeFor("bass", "rumble")?.confuserIds).toEqual(["boomy", "thin"]);
-    expect(listeningChallengeFor("bass", "punchy")?.confuserIds).toEqual(["thin", "thump"]);
-    expect(listeningChallengeFor("bass", "muddy")?.confuserIds).toEqual(["boomy", "thin"]);
+    expect(listeningChallengeFor("bass", "thump")?.confuserIds).toEqual(["thin", "warm"]);
+    expect(listeningChallengeFor("bass", "rumble")?.confuserIds).toEqual(["thin", "boxy"]);
+    expect(listeningChallengeFor("bass", "punchy")?.confuserIds).toEqual(["thin", "warm"]);
+    expect(listeningChallengeFor("bass", "muddy")?.confuserIds).toEqual(["thin", "honky"]);
   });
 
   it("includes the gate cut anchor in every spectral blind challenge", () => {
@@ -50,6 +50,6 @@ describe("listening challenges", () => {
     const trial = createListeningTrial(definition!, () => 0.99);
     expect(trial.targetId).toBe("thump");
     expect(trial.options.map((option) => option.label)).toEqual(["A", "B", "C"]);
-    expect(new Set(trial.options.map((option) => option.descriptorId))).toEqual(new Set(["thump", "boomy", "thin"]));
+    expect(new Set(trial.options.map((option) => option.descriptorId))).toEqual(new Set(["thump", "thin", "warm"]));
   });
 });

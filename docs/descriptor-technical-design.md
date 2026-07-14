@@ -18,6 +18,15 @@ Descriptor Playground is a TypeScript web app.
 
 Python and other offline tools may be used for asset preparation, but runtime app behavior should remain TypeScript/Web Audio.
 
+### Local Launch Contracts
+
+The Windows source tree has two intentionally separate launch paths:
+
+- `web/Start Descriptor Game - TESTER.bat` serves an already prepared `web/app/dist/`. It must not install dependencies, synchronize assets, or build source. It validates the packaged files, waits for the local server health marker, and only then opens the browser.
+- `web/Start Descriptor Game.bat` is the clearly labelled internal developer shortcut. It may install dependencies, synchronize shared inputs, rebuild, and then serve the result.
+
+The lower-level `web/launcher/start-windows.bat` delegates to the external tester path. Distribution must include a prepared build; artifact identity/versioning is tracked separately from this launch contract.
+
 ## Current Folder Shape
 
 The implemented app lives under `web/app/`.
@@ -285,6 +294,10 @@ Core behavior:
 - Keep output safe and stable.
 
 Spectral descriptors use EQ filter chains. Spectral EQ intensity is capped by bucket stack count, where a bucket is descriptor group plus direction: bass/mid/treble and boost/cut. This means `Boomy + Thump` at selected `200%` uses `175%` for the bass-boost bucket, `Harsh + Sibilant` uses `175%` for the treble-boost bucket, and `Boomy + Bright` can keep both filters at `200%`. Bass and treble boosts use the dedicated table `1 -> 200%`, `2 -> 175%`, `3 -> 150%`, `4 -> 125%`, and `5+ -> 100%`. Mid boosts and the fallback table currently use `1 -> 200%`, `2 -> 180%`, `3 -> 160%`, `4 -> 140%`, and `5+ -> 120%`. Dynamic, Spatial, and Integrity descriptors use module-specific profiles and visualizers.
+
+Spatial profiles split the post-EQ stereo signal into a center-weighted mid lane and a side lane before recombining. Pan, near/far level, lowpass, and reflection cues act mainly on the center lane, while width/narrowing acts on the side lane. This keeps the phantom center more controllable without moving or dulling the whole stereo stage.
+
+Both the flat and processed branches feed the existing master trim and then a final shared safety chain: hard-knee `20:1` compression above `-2 dB`, followed by a `4x`-oversampled emergency sample ceiling at `-1 dBFS`. The final ceiling is identity below its threshold, so descriptor/filter settings and `200%` intensity remain intact. Browser-rendered maximum-stack and reconstructed-true-peak verification remains mandatory before an external release is declared audio-safe.
 
 ## Visualizer Policy
 

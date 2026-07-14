@@ -551,6 +551,16 @@ select {
   color: var(--accent-2) !important;
 }
 
+.listening-preview-message {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.listening-preview-message.is-error {
+  color: #f0a092;
+}
+
 .choice-button:hover,
 .text-button:hover,
 .icon-button:hover,

@@ -56,6 +56,8 @@ Current engine cues:
 
 | Cue | Current implementation role |
 |---|---|
+| center-weighted mid lane | Pan, near/far gain, lowpass, and reflection cues mainly affect the phantom center rather than the whole stage. |
+| side lane | Width and narrowing mainly change side energy while preserving center anchoring. |
 | stereo pan | Left/right position through `StereoPannerNode`. |
 | width matrix | Narrow/wide approximation through a mid-side-like channel matrix. |
 | direct level | Farther sounds are reduced in level. |

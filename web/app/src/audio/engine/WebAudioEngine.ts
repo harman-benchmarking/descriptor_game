@@ -2,6 +2,13 @@ import type { AudioProfile, DynamicProfileId, EqFilterSpec, IntegrityProfileId, 
 import { descriptorById } from "../../cards/descriptorCatalog";
 import { normalizeFilter } from "../dsp/eqFilters";
 import { masterTrimForIntensity } from "../dsp/loudness";
+import { centerLaneEncodeGain, sideDecodeGainsForWidth } from "../dsp/spatialCenterLane";
+import {
+  configureFinalSafetyLimiter,
+  connectFinalSafetyChain,
+  finalSafetySettings,
+  makeFinalSafetyCeilingCurve
+} from "./AudioSafety";
 import { rampParam } from "./AudioGraph";
 import { createLoopingAudioElement } from "./TrackLoader";
 
@@ -11,6 +18,8 @@ type BrowserAudioWindow = Window &
   typeof globalThis & {
     webkitAudioContext?: typeof AudioContext;
   };
+
+export type PlaybackStartResult = "started" | "cancelled";
 
 const identityCurve = (() => {
   const curve = new Float32Array(256);
@@ -65,9 +74,17 @@ export class WebAudioEngine {
   private dryGain: GainNode | null = null;
   private wetGain: GainNode | null = null;
   private masterGain: GainNode | null = null;
+  // These nodes protect both flat and processed playback after the existing
+  // master trim; descriptor processing itself remains at the requested strength.
+  private safetyLimiter: DynamicsCompressorNode | null = null;
+  private safetyCeiling: WaveShaperNode | null = null;
   private spatialGain: GainNode | null = null;
   private widthSplitter: ChannelSplitterNode | null = null;
   private widthMerger: ChannelMergerNode | null = null;
+  private centerInput: GainNode | null = null;
+  private centerLToM: GainNode | null = null;
+  private centerRToM: GainNode | null = null;
+  private centerGain: GainNode | null = null;
   private widthLToL: GainNode | null = null;
   private widthRToL: GainNode | null = null;
   private widthLToR: GainNode | null = null;
@@ -92,6 +109,8 @@ export class WebAudioEngine {
   private currentEqOutputIntensity = 1;
   private currentProfileIntensity = 1;
   private currentPlaybackMode: PlaybackMode = "processed";
+  private playbackRequestId = 0;
+  private playbackRequested = false;
 
   constructor(trackSrc: string) {
     this.trackSrc = trackSrc;
@@ -126,9 +145,15 @@ export class WebAudioEngine {
     this.dryGain = this.context.createGain();
     this.wetGain = this.context.createGain();
     this.masterGain = this.context.createGain();
+    this.safetyLimiter = this.context.createDynamicsCompressor();
+    this.safetyCeiling = this.context.createWaveShaper();
     this.spatialGain = this.context.createGain();
     this.widthSplitter = this.context.createChannelSplitter(2);
     this.widthMerger = this.context.createChannelMerger(2);
+    this.centerInput = this.context.createGain();
+    this.centerLToM = this.context.createGain();
+    this.centerRToM = this.context.createGain();
+    this.centerGain = this.context.createGain();
     this.widthLToL = this.context.createGain();
     this.widthRToL = this.context.createGain();
     this.widthLToR = this.context.createGain();
@@ -147,7 +172,13 @@ export class WebAudioEngine {
     this.dryGain.gain.value = 0;
     this.wetGain.gain.value = 1;
     this.masterGain.gain.value = 0.82;
+    configureFinalSafetyLimiter(this.safetyLimiter);
+    this.safetyCeiling.curve = makeFinalSafetyCeilingCurve();
+    this.safetyCeiling.oversample = finalSafetySettings.ceilingOversample;
     this.spatialGain.gain.value = 1;
+    this.centerLToM.gain.value = centerLaneEncodeGain;
+    this.centerRToM.gain.value = centerLaneEncodeGain;
+    this.centerGain.gain.value = 1;
     this.spatialTone.type = "lowpass";
     this.spatialTone.frequency.value = 20000;
     this.spatialTone.Q.value = 0.7;
@@ -164,7 +195,7 @@ export class WebAudioEngine {
 
     this.dryGain.connect(this.masterGain);
     this.wetGain.connect(this.masterGain);
-    this.masterGain.connect(this.context.destination);
+    connectFinalSafetyChain(this.masterGain, this.safetyLimiter, this.safetyCeiling, this.context.destination);
     this.rebuildEqChainIfNeeded(0);
     this.applyEqFilters();
     this.applyProfileLayers();
@@ -173,26 +204,76 @@ export class WebAudioEngine {
     await this.context.resume();
   }
 
-  async setTrack(src: string) {
+  async setTrack(src: string): Promise<PlaybackStartResult> {
     this.trackSrc = src;
-    if (!this.audioElement) return;
-    const shouldResume = !this.audioElement.paused;
+    if (!this.audioElement) return "cancelled";
+    const shouldResume = this.playbackRequested || this.playing || !this.audioElement.paused;
+    this.playbackRequestId += 1;
+    this.playbackRequested = false;
+    this.playing = false;
     this.audioElement.pause();
     this.audioElement.src = src;
     this.audioElement.load();
     if (shouldResume) {
-      await this.play();
+      return this.play();
+    }
+    return "cancelled";
+  }
+
+  async play(): Promise<PlaybackStartResult> {
+    const requestId = ++this.playbackRequestId;
+    this.playbackRequested = true;
+
+    try {
+      await this.initialize();
+      if (!this.isCurrentPlaybackRequest(requestId)) {
+        this.settleCancelledPlayback();
+        return "cancelled";
+      }
+
+      await this.context?.resume();
+      if (!this.isCurrentPlaybackRequest(requestId)) {
+        this.settleCancelledPlayback();
+        return "cancelled";
+      }
+
+      await this.audioElement?.play();
+      if (!this.isCurrentPlaybackRequest(requestId)) {
+        this.settleCancelledPlayback();
+        return "cancelled";
+      }
+
+      this.playing = true;
+      return "started";
+    } catch (error) {
+      if (!this.isCurrentPlaybackRequest(requestId)) {
+        this.settleCancelledPlayback();
+        return "cancelled";
+      }
+
+      this.playbackRequested = false;
+      this.playing = false;
+      throw error;
     }
   }
 
-  async play() {
-    await this.initialize();
-    await this.context?.resume();
-    await this.audioElement?.play();
-    this.playing = true;
+  pause() {
+    this.playbackRequestId += 1;
+    this.playbackRequested = false;
+    this.audioElement?.pause();
+    void this.context?.suspend();
+    this.playing = false;
   }
 
-  pause() {
+  private isCurrentPlaybackRequest(requestId: number) {
+    return this.playbackRequested && requestId === this.playbackRequestId;
+  }
+
+  private settleCancelledPlayback() {
+    // A newer play request owns the shared media element. Only force it back to
+    // rest when cancellation represents a real pause/dispose rather than a
+    // superseded play call.
+    if (this.playbackRequested) return;
     this.audioElement?.pause();
     void this.context?.suspend();
     this.playing = false;
@@ -235,9 +316,15 @@ export class WebAudioEngine {
       this.dryGain,
       this.wetGain,
       this.masterGain,
+      this.safetyLimiter,
+      this.safetyCeiling,
       this.spatialGain,
       this.widthSplitter,
       this.widthMerger,
+      this.centerInput,
+      this.centerLToM,
+      this.centerRToM,
+      this.centerGain,
       this.widthLToL,
       this.widthRToL,
       this.widthLToR,
@@ -290,7 +377,7 @@ export class WebAudioEngine {
   }
 
   private applySpatialProfiles(profileIds: SpatialProfileId[]) {
-    if (!this.context || !this.spatialGain || !this.spatialPanner || !this.spatialTone || !this.reflectionDelay || !this.reflectionGain) return;
+    if (!this.context || !this.centerGain || !this.spatialPanner || !this.spatialTone || !this.reflectionDelay || !this.reflectionGain) return;
 
     const active = new Set(profileIds);
     const now = this.context.currentTime;
@@ -301,21 +388,21 @@ export class WebAudioEngine {
     let reflectionDelaySec = 0.065;
     let widthAmount = 1;
 
-    if (active.has("left")) pan = -0.9;
-    if (active.has("right")) pan = 0.9;
+    if (active.has("left")) pan = -0.74;
+    if (active.has("right")) pan = 0.74;
     if (active.has("centered")) pan = 0;
 
     if (active.has("near")) {
-      mediaGain *= 1.06;
-      reflectionAmount = Math.max(reflectionAmount, 0.015);
-      reflectionDelaySec = 0.022;
+      mediaGain *= 1.22;
+      reflectionAmount = Math.min(reflectionAmount, 0.005);
+      reflectionDelaySec = 0.018;
     }
 
     if (active.has("far")) {
-      mediaGain *= 0.72;
-      lowpassHz = Math.min(lowpassHz, 6200);
-      reflectionAmount = Math.max(reflectionAmount, 0.2);
-      reflectionDelaySec = 0.095;
+      mediaGain *= 0.58;
+      lowpassHz = Math.min(lowpassHz, 7600);
+      reflectionAmount = Math.max(reflectionAmount, 0.045);
+      reflectionDelaySec = 0.08;
     }
 
     if (active.has("focused")) {
@@ -332,7 +419,7 @@ export class WebAudioEngine {
     }
 
     if (active.has("wide")) {
-      widthAmount = Math.max(widthAmount, 1.45);
+      widthAmount = Math.max(widthAmount, 1.85);
     }
 
     if (active.has("narrow")) {
@@ -364,7 +451,7 @@ export class WebAudioEngine {
 
     this.setStereoWidth(widthAmount, now);
     rampParam(this.spatialPanner.pan, pan, now, 0.03);
-    rampParam(this.spatialGain.gain, mediaGain, now, 0.03);
+    rampParam(this.centerGain.gain, mediaGain, now, 0.03);
     rampParam(this.spatialTone.frequency, lowpassHz, now, 0.03);
     rampParam(this.reflectionDelay.delayTime, reflectionDelaySec, now, 0.03);
     rampParam(this.reflectionGain.gain, reflectionAmount * this.currentProfileIntensity, now, 0.03);
@@ -373,14 +460,12 @@ export class WebAudioEngine {
   private setStereoWidth(width: number, now: number) {
     if (!this.widthLToL || !this.widthRToL || !this.widthLToR || !this.widthRToR) return;
 
-    const safeWidth = Math.max(0, Math.min(1.6, width));
-    const sameChannelGain = 0.5 + safeWidth * 0.5;
-    const crossChannelGain = 0.5 - safeWidth * 0.5;
+    const gains = sideDecodeGainsForWidth(width);
 
-    rampParam(this.widthLToL.gain, sameChannelGain, now, 0.03);
-    rampParam(this.widthRToR.gain, sameChannelGain, now, 0.03);
-    rampParam(this.widthRToL.gain, crossChannelGain, now, 0.03);
-    rampParam(this.widthLToR.gain, crossChannelGain, now, 0.03);
+    rampParam(this.widthLToL.gain, gains.lToL, now, 0.03);
+    rampParam(this.widthRToL.gain, gains.rToL, now, 0.03);
+    rampParam(this.widthLToR.gain, gains.lToR, now, 0.03);
+    rampParam(this.widthRToR.gain, gains.rToR, now, 0.03);
   }
 
   private applyDynamicProfiles(profileIds: DynamicProfileId[]) {
@@ -577,6 +662,10 @@ export class WebAudioEngine {
       !this.spatialGain ||
       !this.widthSplitter ||
       !this.widthMerger ||
+      !this.centerInput ||
+      !this.centerLToM ||
+      !this.centerRToM ||
+      !this.centerGain ||
       !this.widthLToL ||
       !this.widthRToL ||
       !this.widthLToR ||
@@ -612,6 +701,10 @@ export class WebAudioEngine {
       !this.spatialGain ||
       !this.widthSplitter ||
       !this.widthMerger ||
+      !this.centerInput ||
+      !this.centerLToM ||
+      !this.centerRToM ||
+      !this.centerGain ||
       !this.widthLToL ||
       !this.widthRToL ||
       !this.widthLToR ||
@@ -637,6 +730,10 @@ export class WebAudioEngine {
       this.spatialGain,
       this.widthSplitter,
       this.widthMerger,
+      this.centerInput,
+      this.centerLToM,
+      this.centerRToM,
+      this.centerGain,
       this.widthLToL,
       this.widthRToL,
       this.widthLToR,
@@ -663,6 +760,19 @@ export class WebAudioEngine {
     });
 
     this.spatialGain.connect(this.widthSplitter);
+
+    // Center lane: M = 0.5L + 0.5R. Spatial pan/depth cues act here so the
+    // center image can move without dragging the whole stereo stage.
+    this.widthSplitter.connect(this.centerLToM, 0);
+    this.widthSplitter.connect(this.centerRToM, 1);
+    this.centerLToM.connect(this.centerInput);
+    this.centerRToM.connect(this.centerInput);
+    this.centerInput.connect(this.centerGain);
+    this.centerGain.connect(this.spatialTone);
+    this.spatialTone.connect(this.spatialPanner);
+    this.spatialPanner.connect(this.compressor);
+
+    // Side lane: S = 0.5L - 0.5R, decoded as +S on left and -S on right.
     this.widthSplitter.connect(this.widthLToL, 0);
     this.widthSplitter.connect(this.widthRToL, 1);
     this.widthSplitter.connect(this.widthLToR, 0);
@@ -671,9 +781,7 @@ export class WebAudioEngine {
     this.widthRToL.connect(this.widthMerger, 0, 0);
     this.widthLToR.connect(this.widthMerger, 0, 1);
     this.widthRToR.connect(this.widthMerger, 0, 1);
-    this.widthMerger.connect(this.spatialPanner);
-    this.spatialPanner.connect(this.spatialTone);
-    this.spatialTone.connect(this.compressor);
+    this.widthMerger.connect(this.compressor);
     this.compressor.connect(this.dynamicGain);
     this.dynamicGain.connect(this.shaper);
     this.shaper.connect(this.dropoutGain);

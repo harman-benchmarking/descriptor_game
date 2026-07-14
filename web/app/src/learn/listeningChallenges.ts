@@ -22,62 +22,62 @@ const challengeDefinitions: ListeningChallengeDefinition[] = [
   {
     gateId: "bass",
     targetId: "thump",
-    confuserIds: ["boomy", "thin"]
+    confuserIds: ["thin", "warm"]
   },
   {
     gateId: "bass",
     targetId: "rumble",
-    confuserIds: ["boomy", "thin"]
+    confuserIds: ["thin", "boxy"]
   },
   {
     gateId: "bass",
     targetId: "punchy",
-    confuserIds: ["thin", "thump"]
+    confuserIds: ["thin", "warm"]
   },
   {
     gateId: "bass",
     targetId: "muddy",
-    confuserIds: ["boomy", "thin"]
+    confuserIds: ["thin", "honky"]
   },
   {
     gateId: "mid",
     targetId: "honky",
-    confuserIds: ["hollow", "boxy"]
+    confuserIds: ["hollow", "boomy"]
   },
   {
     gateId: "mid",
     targetId: "warm",
-    confuserIds: ["hollow", "boxy"]
+    confuserIds: ["hollow", "bright"]
   },
   {
     gateId: "mid",
     targetId: "nasal",
-    confuserIds: ["hollow", "honky"]
+    confuserIds: ["hollow", "boomy"]
   },
   {
     gateId: "mid",
     targetId: "shouty",
-    confuserIds: ["hollow", "honky"]
+    confuserIds: ["hollow", "bright"]
   },
   {
     gateId: "treble",
     targetId: "harsh",
-    confuserIds: ["bright", "dull"]
+    confuserIds: ["dull", "honky"]
   },
   {
     gateId: "treble",
     targetId: "sibilant",
-    confuserIds: ["dull", "bright"]
+    confuserIds: ["dull", "nasal"]
   },
   {
     gateId: "treble",
     targetId: "glassy",
-    confuserIds: ["dull", "sibilant"]
+    confuserIds: ["dull", "boxy"]
   },
   {
     gateId: "treble",
     targetId: "airy",
-    confuserIds: ["bright", "dull"]
+    confuserIds: ["dull", "shouty"]
   },
   {
     gateId: "spatial-position",

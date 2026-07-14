@@ -45,18 +45,18 @@ Blind trials are always three hidden audio options: target plus two confusers, s
 
 | Gate | Target | Active confusers |
 |---|---|---|
-| Bass | `Thump` | `Boomy`, `Thin` |
-| Bass | `Rumble` | `Boomy`, `Thin` |
-| Bass | `Punchy` | `Thin`, `Thump` |
-| Bass | `Muddy` | `Boomy`, `Thin` |
-| Mid | `Honky` | `Hollow`, `Boxy` |
-| Mid | `Warm` | `Hollow`, `Boxy` |
-| Mid | `Nasal` | `Hollow`, `Honky` |
-| Mid | `Shouty` | `Hollow`, `Honky` |
-| Treble | `Harsh` | `Bright`, `Dull` |
-| Treble | `Sibilant` | `Dull`, `Bright` |
-| Treble | `Glassy` | `Dull`, `Sibilant` |
-| Treble | `Airy` | `Bright`, `Dull` |
+| Bass | `Thump` | `Thin`, `Warm` |
+| Bass | `Rumble` | `Thin`, `Boxy` |
+| Bass | `Punchy` | `Thin`, `Warm` |
+| Bass | `Muddy` | `Thin`, `Honky` |
+| Mid | `Honky` | `Hollow`, `Boomy` |
+| Mid | `Warm` | `Hollow`, `Bright` |
+| Mid | `Nasal` | `Hollow`, `Boomy` |
+| Mid | `Shouty` | `Hollow`, `Bright` |
+| Treble | `Harsh` | `Dull`, `Honky` |
+| Treble | `Sibilant` | `Dull`, `Nasal` |
+| Treble | `Glassy` | `Dull`, `Boxy` |
+| Treble | `Airy` | `Dull`, `Shouty` |
 | Position | `Centered` | `Left`, `Right` |
 | Position | `Near` | `Centered`, `Far` |
 | Position | `Far` | `Centered`, `Near` |
@@ -94,10 +94,11 @@ This makes every spectral trial test both frequency region and boost/cut directi
 1. The card label is visible as the target to learn.
 2. The answer options are hidden as `A`, `B`, and `C`.
 3. The player previews one option at a time.
-4. Labels remain hidden until the answer is submitted.
-5. Correct answers unlock the target basic card.
-6. Incorrect answers reveal feedback but do not unlock the card.
-7. The player can start a new trial for the same target.
+4. Answer submission stays disabled until the audio engine confirms that at least one preview in the current trial started successfully. A rejected start leaves scoring locked and shows retry guidance.
+5. Labels remain hidden until the answer is submitted.
+6. Correct answers unlock the target basic card.
+7. Incorrect answers reveal feedback but do not unlock the card.
+8. Starting a new trial stops current audio, clears preview/result state, assigns a new trial identity, and reshuffles the options. Late playback completion from the replaced trial is ignored.
 
 ## Save Effects
 
@@ -130,6 +131,7 @@ The shared playback panel remains available in Training Grounds, but the intensi
 
 - Gate data: `web/app/src/data/regions.ts`
 - Blind trial data: `web/app/src/learn/listeningChallenges.ts`
+- Blind trial state and stale-request guards: `web/app/src/learn/blindTrialSession.ts`
 - Training UI: `web/app/src/app/App.tsx` `LearnScreen`
 - Trial UI: `web/app/src/app/App.tsx` `BlindListeningChallengeBlock`
-- Guard tests: `web/app/src/tests/listeningChallenges.test.ts`
+- Guard tests: `web/app/src/tests/listeningChallenges.test.ts`, `blindTrialSession.test.ts`, `BlindListeningChallengeBlock.test.tsx`, and `AppTrainingAudio.test.tsx`

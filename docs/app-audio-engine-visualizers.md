@@ -65,6 +65,16 @@ Current non-spectral profiles:
 | Dynamic | `Snappy`, `Softened`, `Tight`, `Loose`, `Compressed`, `Pumping`, `Flat` (`flat-dynamics`, audio profile id `flat`), `Clipped`, `Distorted` |
 | Integrity | `Hiss`, `Static`, `Hum`, `Buzz`, `Whine`, `Dirty`, `Click`, `Pop`, `Crackle`, `Dropout`, `Squeak` |
 
+## Final Output Safety
+
+Flat and processed playback converge before the final output protection chain:
+
+`dry/processed mix -> master trim -> safety limiter -> emergency ceiling -> destination`
+
+The safety limiter uses a `-2 dB` threshold, hard knee, `20:1` ratio, `1 ms` attack, and `80 ms` release. The emergency WaveShaper is identity below `-1 dBFS`, clamps excursions beyond that sample ceiling, and uses `4x` oversampling. This post-master placement protects every playback mode without reducing descriptor parameters or the supported `200%` training intensity.
+
+Deterministic tests cover the node order, limiter configuration, steady-state transfer estimate, finite ceiling curve, and sample bound. A browser-rendered matrix covering approved maximum stacks, reconstructed true peak, transient engagement, NaN, and DC remains a release-verification requirement because the unit-test runtime does not expose `OfflineAudioContext`.
+
 ## Visualizer Priority Rules
 
 Sound Lab can intentionally stack conflicting basics, so the visualizer state has deterministic priority rules:
@@ -91,6 +101,7 @@ The audio function docs cover implementation-facing details rather than card mod
 ## Implementation References
 
 - Engine: `web/app/src/audio/engine/WebAudioEngine.ts`
+- Final output safety: `web/app/src/audio/engine/AudioSafety.ts`
 - EQ filters: `web/app/src/audio/dsp/eqFilters.ts`
 - Curve response: `web/app/src/audio/dsp/curveResponse.ts`
 - Tracks: `web/app/src/data/tracks.ts`

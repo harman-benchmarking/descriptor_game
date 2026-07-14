@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BookOpen, Boxes, Building2, Check, ChevronLeft, ChevronRight, Lock, Map as MapIcon, Pause, Play, RotateCcw, Settings, SkipForward, X } from "lucide-react";
 import { buildEffectiveFilters, effectiveIntensityRangeForActiveSpectralBuckets, expandDiscoveryToBasicIds, headroomIntensityForActiveSpectralBuckets, maxEqBands } from "../audio/dsp/eqFilters";
 import { buildCurvePoints } from "../audio/dsp/curveResponse";
@@ -12,7 +12,17 @@ import { normalizeDetailId, parseDescriptorDetailPages, type PlayerFacingIdentit
 import { gateDefinitions, moduleDefinitions, playableRegionContent, regionDefinitions, type GateDefinition, type GateId } from "../data/regions";
 import { preferredTrackForGate, trackDefinitions } from "../data/tracks";
 import { createTranslator, type Locale } from "../i18n/i18n";
-import { createListeningTrial, listeningChallengeFor, type ListeningTrialOption } from "../learn/listeningChallenges";
+import { listeningChallengeFor, type ListeningTrialOption } from "../learn/listeningChallenges";
+import {
+  beginBlindPreview,
+  blindPreviewAttemptKey,
+  canSubmitBlindTrial,
+  createBlindTrialSession,
+  settleBlindPreview,
+  submitBlindTrialChoice,
+  type BlindPreviewAttempt,
+  type BlindPreviewStartResult
+} from "../learn/blindTrialSession";
 import { clearSaveData, loadSaveData, storeSaveData } from "../persistence/storage";
 import { defaultSaveData, type PlaybackMode, type SaveDataV1 } from "../persistence/saveData";
 import { CardGrid } from "../ui/components/CardGrid";
@@ -32,8 +42,10 @@ import type { DescriptorCard as DescriptorCardType, DescriptorModuleId, Discover
 type BlindPreviewState = {
   gateId: GateId;
   targetId: string;
+  trialId: string;
   optionLabel: string;
   submitted: boolean;
+  playbackStatus: "starting" | "playing";
 };
 
 type TowerTrial = {
@@ -499,6 +511,8 @@ export function App() {
   const [cardDetails, setCardDetails] = useState<Record<string, PlayerFacingIdentity>>({});
   const [aliasDetail, setAliasDetail] = useState<AliasVocabularyCard | null>(null);
   const engineRef = useRef<WebAudioEngine | null>(null);
+  const activeBlindPreviewAttemptRef = useRef<string | null>(null);
+  const currentBlindTrialIdRef = useRef<string | null>(null);
   const preserveCollectionSandboxTransferRef = useRef(false);
 
   const t = useMemo(() => createTranslator(saveData.locale), [saveData.locale]);
@@ -645,6 +659,8 @@ export function App() {
 
     engineRef.current?.pause();
     engineRef.current?.clearEq();
+    activeBlindPreviewAttemptRef.current = null;
+    currentBlindTrialIdRef.current = null;
     setPlaying(false);
     setActiveBasicIds([]);
     setActiveDiscoveryId(null);
@@ -664,7 +680,11 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    void engineRef.current?.setTrack(selectedTrack.src);
+    void engineRef.current?.setTrack(selectedTrack.src).then((result) => {
+      if (result !== "started") return;
+      setAudioReady(true);
+      setPlaying(true);
+    });
   }, [selectedTrack.src]);
 
   useEffect(() => {
@@ -762,28 +782,103 @@ export function App() {
     setNotice("status.tryAgain");
   };
 
-  const previewBlindChallengeChoice = (gate: GateDefinition, targetId: string, option: ListeningTrialOption) => {
+  const previewBlindChallengeChoice = async (
+    gate: GateDefinition,
+    targetId: string,
+    option: ListeningTrialOption,
+    attempt: BlindPreviewAttempt
+  ): Promise<BlindPreviewStartResult> => {
+    const attemptKey = blindPreviewAttemptKey(attempt);
+    activeBlindPreviewAttemptRef.current = attemptKey;
+    currentBlindTrialIdRef.current = attempt.trialId;
     setBlindPreviewState({
       gateId: gate.id,
       targetId,
+      trialId: attempt.trialId,
       optionLabel: option.label,
-      submitted: false
+      submitted: false,
+      playbackStatus: "starting"
     });
     setActiveDiscoveryId(null);
     setActiveBasicIds([option.descriptorId]);
     setPlaybackMode("processed");
-    void engineRef.current?.play().then(() => {
-      setAudioReady(true);
-      setPlaying(true);
-    });
-  };
+    setPlaying(false);
 
-  const submitBlindChallengeChoice = (gate: GateDefinition, targetId: string, option: ListeningTrialOption) => {
+    const engine = engineRef.current;
+    if (!engine) {
+      if (activeBlindPreviewAttemptRef.current === attemptKey) {
+        activeBlindPreviewAttemptRef.current = null;
+        setBlindPreviewState(null);
+      }
+      return "failed";
+    }
+
+    const previewIds = [option.descriptorId];
+    engine.setAudioProfiles(previewIds, activeIntensity);
+    engine.setEqFilters(
+      buildEffectiveFilters(previewIds, activeIntensity, engine.sampleRate),
+      headroomIntensityForActiveSpectralBuckets(previewIds, activeIntensity)
+    );
+    engine.setPlaybackMode("processed");
+
+    let playbackResult: Awaited<ReturnType<WebAudioEngine["play"]>>;
+    try {
+      playbackResult = await engine.play();
+    } catch {
+      if (activeBlindPreviewAttemptRef.current !== attemptKey || currentBlindTrialIdRef.current !== attempt.trialId) return "stale";
+      activeBlindPreviewAttemptRef.current = null;
+      engine.pause();
+      setPlaying(false);
+      return "failed";
+    }
+
+    if (activeBlindPreviewAttemptRef.current !== attemptKey || currentBlindTrialIdRef.current !== attempt.trialId) {
+      if (activeBlindPreviewAttemptRef.current === null) {
+        engine.pause();
+        setPlaying(false);
+      }
+      return "stale";
+    }
+
+    if (playbackResult !== "started") {
+      activeBlindPreviewAttemptRef.current = null;
+      setPlaying(engine.isPlaying);
+      return "failed";
+    }
+
     setBlindPreviewState({
       gateId: gate.id,
       targetId,
+      trialId: attempt.trialId,
       optionLabel: option.label,
-      submitted: true
+      submitted: false,
+      playbackStatus: "playing"
+    });
+    setAudioReady(true);
+    setPlaying(true);
+    return "started";
+  };
+
+  const startNewBlindTrial = (trialId: string) => {
+    activeBlindPreviewAttemptRef.current = null;
+    currentBlindTrialIdRef.current = trialId;
+    engineRef.current?.pause();
+    setPlaying(false);
+    setBlindPreviewState(null);
+    setActiveDiscoveryId(null);
+    setActiveBasicIds([]);
+    setPlaybackMode("processed");
+  };
+
+  const submitBlindChallengeChoice = (gate: GateDefinition, targetId: string, option: ListeningTrialOption, trialId: string) => {
+    currentBlindTrialIdRef.current = trialId;
+    setBlindPreviewState({
+      gateId: gate.id,
+      targetId,
+      trialId,
+      optionLabel: option.label,
+      submitted: true,
+      playbackStatus: "playing"
     });
     setActiveDiscoveryId(null);
     setActiveBasicIds([option.descriptorId]);
@@ -801,9 +896,11 @@ export function App() {
     setActiveBasicIds(basicIdsForTowerTarget(towerTrial.targetId));
     setPlaybackMode("processed");
     setTowerTrial((current) => ({ ...current, previewed: true }));
-    await engineRef.current?.play();
-    setAudioReady(true);
-    setPlaying(true);
+    const result = await engineRef.current?.play();
+    if (result === "started") {
+      setAudioReady(true);
+      setPlaying(true);
+    }
   };
 
   const recordTowerResult = (floorId: TowerFloorId, scoreDelta: number) => {
@@ -895,10 +992,12 @@ export function App() {
     setActiveBasicIds(basicIdsForTowerTarget(nextTrial.targetId));
     setPlaybackMode("processed");
     setTowerTrial({ ...nextTrial, previewed: true });
-    await engineRef.current?.play();
-    setAudioReady(true);
-    setPlaying(true);
-    setNotice("tower.nextSoundStarted");
+    const result = await engineRef.current?.play();
+    if (result === "started") {
+      setAudioReady(true);
+      setPlaying(true);
+      setNotice("tower.nextSoundStarted");
+    }
   };
 
   const handleToggleBasic = (id: string) => {
@@ -1018,9 +1117,11 @@ export function App() {
   };
 
   const startAudio = async () => {
-    await engineRef.current?.play();
-    setAudioReady(true);
-    setPlaying(true);
+    const result = await engineRef.current?.play();
+    if (result === "started") {
+      setAudioReady(true);
+      setPlaying(true);
+    }
   };
 
   const pauseAudio = () => {
@@ -1037,9 +1138,11 @@ export function App() {
       pauseAudio();
       return;
     }
-    await engineRef.current.play();
-    setAudioReady(true);
-    setPlaying(true);
+    const result = await engineRef.current.play();
+    if (result === "started") {
+      setAudioReady(true);
+      setPlaying(true);
+    }
   };
 
   const setCurrentIntensity = (value: number) => {
@@ -1163,6 +1266,7 @@ export function App() {
               learnBasics={learnBasics}
               handleChallengeChoice={handleChallengeChoice}
               previewBlindChallengeChoice={previewBlindChallengeChoice}
+              startNewBlindTrial={startNewBlindTrial}
               pauseBlindPreview={pauseAudio}
               submitBlindChallengeChoice={submitBlindChallengeChoice}
               handleToggleBasic={handleLearnToggleBasic}
@@ -1419,9 +1523,15 @@ type LearnProps = {
   t: (key: string) => string;
   learnBasics: (ids: string[], challengeId: string) => void;
   handleChallengeChoice: (gate: GateDefinition, targetId: string, choiceId: string) => void;
-  previewBlindChallengeChoice: (gate: GateDefinition, targetId: string, option: ListeningTrialOption) => void;
+  previewBlindChallengeChoice: (
+    gate: GateDefinition,
+    targetId: string,
+    option: ListeningTrialOption,
+    attempt: BlindPreviewAttempt
+  ) => Promise<BlindPreviewStartResult>;
+  startNewBlindTrial: (trialId: string) => void;
   pauseBlindPreview: () => void;
-  submitBlindChallengeChoice: (gate: GateDefinition, targetId: string, option: ListeningTrialOption) => void;
+  submitBlindChallengeChoice: (gate: GateDefinition, targetId: string, option: ListeningTrialOption, trialId: string) => void;
   handleToggleBasic: (id: string) => void;
   inspectDescriptor: (id: string) => void;
   backToCampus: () => void;
@@ -1442,6 +1552,7 @@ function LearnScreen({
   learnBasics,
   handleChallengeChoice,
   previewBlindChallengeChoice,
+  startNewBlindTrial,
   pauseBlindPreview,
   submitBlindChallengeChoice,
   handleToggleBasic,
@@ -1544,7 +1655,7 @@ function LearnScreen({
         <div className="challenge-grid">
           {trialTargetIds.map((targetId) => (
             <ChallengeBlock
-              key={targetId}
+              key={`${selectedGate.id}:${targetId}`}
               gate={selectedGate}
               targetId={targetId}
               learnedBasicSet={learnedBasicSet}
@@ -1554,6 +1665,7 @@ function LearnScreen({
               t={t}
               onChoice={handleChallengeChoice}
               onPreviewBlindChoice={previewBlindChallengeChoice}
+              onStartNewBlindTrial={startNewBlindTrial}
               onPauseBlindPreview={pauseBlindPreview}
               onSubmitBlindChoice={submitBlindChallengeChoice}
               onToggleBasic={handleToggleBasic}
@@ -1592,9 +1704,15 @@ type ChallengeProps = {
   title?: string;
   t: (key: string) => string;
   onChoice: (gate: GateDefinition, targetId: string, choiceId: string) => void;
-  onPreviewBlindChoice: (gate: GateDefinition, targetId: string, option: ListeningTrialOption) => void;
+  onPreviewBlindChoice: (
+    gate: GateDefinition,
+    targetId: string,
+    option: ListeningTrialOption,
+    attempt: BlindPreviewAttempt
+  ) => Promise<BlindPreviewStartResult>;
+  onStartNewBlindTrial: (trialId: string) => void;
   onPauseBlindPreview: () => void;
-  onSubmitBlindChoice: (gate: GateDefinition, targetId: string, option: ListeningTrialOption) => void;
+  onSubmitBlindChoice: (gate: GateDefinition, targetId: string, option: ListeningTrialOption, trialId: string) => void;
   onToggleBasic: (id: string) => void;
   onInspectDescriptor: (id: string) => void;
 };
@@ -1610,6 +1728,7 @@ function ChallengeBlock({
   t,
   onChoice,
   onPreviewBlindChoice,
+  onStartNewBlindTrial,
   onPauseBlindPreview,
   onSubmitBlindChoice,
   onToggleBasic,
@@ -1629,6 +1748,7 @@ function ChallengeBlock({
         title={title}
         t={t}
         onPreview={onPreviewBlindChoice}
+        onStartNewTrial={onStartNewBlindTrial}
         onPausePreview={onPauseBlindPreview}
         onSubmit={onSubmitBlindChoice}
         onToggleBasic={onToggleBasic}
@@ -1660,7 +1780,7 @@ function ChallengeBlock({
   );
 }
 
-function BlindListeningChallengeBlock({
+export function BlindListeningChallengeBlock({
   gate,
   targetId,
   learnedBasicSet,
@@ -1670,6 +1790,7 @@ function BlindListeningChallengeBlock({
   title,
   t,
   onPreview,
+  onStartNewTrial,
   onPausePreview,
   onSubmit,
   onToggleBasic,
@@ -1683,30 +1804,34 @@ function BlindListeningChallengeBlock({
   blindPreviewState: BlindPreviewState | null;
   title?: string;
   t: (key: string) => string;
-  onPreview: (gate: GateDefinition, targetId: string, option: ListeningTrialOption) => void;
+  onPreview: (
+    gate: GateDefinition,
+    targetId: string,
+    option: ListeningTrialOption,
+    attempt: BlindPreviewAttempt
+  ) => Promise<BlindPreviewStartResult>;
+  onStartNewTrial: (trialId: string) => void;
   onPausePreview: () => void;
-  onSubmit: (gate: GateDefinition, targetId: string, option: ListeningTrialOption) => void;
+  onSubmit: (gate: GateDefinition, targetId: string, option: ListeningTrialOption, trialId: string) => void;
   onToggleBasic: (id: string) => void;
   onInspectDescriptor: (id: string) => void;
 }) {
   const definition = listeningChallengeFor(gate.id, targetId)!;
   const target = descriptorById.get(targetId)!;
   const isUnlocked = learnedBasicSet.has(targetId);
-  const [trial, setTrial] = useState(() => createListeningTrial(definition));
-  const [previewedLabel, setPreviewedLabel] = useState<string | null>(null);
-  const [result, setResult] = useState<{ correct: boolean; option: ListeningTrialOption } | null>(null);
-
-  useEffect(() => {
-    setTrial(createListeningTrial(definition));
-    setPreviewedLabel(null);
-    setResult(null);
-  }, [definition]);
+  const blockId = useId();
+  const trialSequenceRef = useRef(0);
+  const createNextSession = () =>
+    createBlindTrialSession(definition, `${blockId}:${trialSequenceRef.current++}`);
+  const [trialSession, setTrialSession] = useState(createNextSession);
+  const result = trialSession.result;
+  const canSubmit = canSubmitBlindTrial(trialSession);
 
   const targetLabel = t(target.textKeys.label);
   const startNextTrial = () => {
-    setTrial(createListeningTrial(definition));
-    setPreviewedLabel(null);
-    setResult(null);
+    const nextSession = createNextSession();
+    onStartNewTrial(nextSession.id);
+    setTrialSession(nextSession);
   };
 
   const isActivePreview = (option: ListeningTrialOption) =>
@@ -1715,22 +1840,32 @@ function BlindListeningChallengeBlock({
         !blindPreviewState.submitted &&
         blindPreviewState.gateId === gate.id &&
         blindPreviewState.targetId === targetId &&
+        blindPreviewState.trialId === trialSession.id &&
         blindPreviewState.optionLabel === option.label
     );
 
-  const previewOption = (option: ListeningTrialOption) => {
-    if (isActivePreview(option) && playing) {
+  const previewOption = async (option: ListeningTrialOption) => {
+    if (isActivePreview(option) && blindPreviewState?.playbackStatus === "playing" && playing) {
       onPausePreview();
       return;
     }
-    setPreviewedLabel(option.label);
-    onPreview(gate, targetId, option);
+
+    const preview = beginBlindPreview(trialSession, option.label);
+    setTrialSession(preview.session);
+    let outcome: BlindPreviewStartResult = "failed";
+    try {
+      outcome = await onPreview(gate, targetId, option, preview.attempt);
+    } catch {
+      // The app-level handler normally converts playback errors into "failed".
+      // Keeping the component defensive ensures a rejected callback never unlocks scoring.
+    }
+    setTrialSession((current) => settleBlindPreview(current, preview.attempt, outcome));
   };
 
   const submitOption = (option: ListeningTrialOption) => {
-    const nextResult = { correct: option.descriptorId === targetId, option };
-    setResult(nextResult);
-    onSubmit(gate, targetId, option);
+    if (!canSubmit) return;
+    setTrialSession((current) => submitBlindTrialChoice(current, option));
+    onSubmit(gate, targetId, option, trialSession.id);
   };
 
   return (
@@ -1752,11 +1887,11 @@ function BlindListeningChallengeBlock({
         {isUnlocked ? <p className="listening-unlocked">{t("listening.unlockedPractice")}</p> : null}
       </div>
       <div className="blind-option-grid">
-        {trial.options.map((option) => {
+        {trialSession.trial.options.map((option) => {
           const descriptor = descriptorById.get(option.descriptorId)!;
-          const hasPreviewed = previewedLabel === option.label;
+          const hasPreviewed = trialSession.previewedLabels.includes(option.label);
           const isPreviewing = isActivePreview(option);
-          const isPlayingPreview = isPreviewing && playing;
+          const isPlayingPreview = isPreviewing && blindPreviewState?.playbackStatus === "playing" && playing;
           const isChosen = result?.option.label === option.label;
           const isCorrectAnswer = Boolean(result && option.descriptorId === targetId);
           const isWrongChoice = Boolean(result && isChosen && option.descriptorId !== targetId);
@@ -1778,7 +1913,7 @@ function BlindListeningChallengeBlock({
                 >
                   {isPlayingPreview ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}
                 </button>
-                <button className="text-button" type="button" disabled={Boolean(result)} onClick={() => submitOption(option)}>
+                <button className="text-button" type="button" disabled={!canSubmit} onClick={() => submitOption(option)}>
                   <Check aria-hidden="true" />
                   <span>
                     {t("listening.choose")} {option.label}
@@ -1789,6 +1924,13 @@ function BlindListeningChallengeBlock({
           );
         })}
       </div>
+      {trialSession.previewFailed ? (
+        <p className="listening-preview-message is-error" role="alert">
+          {t("listening.previewFailed")}
+        </p>
+      ) : !result && trialSession.previewedLabels.length === 0 ? (
+        <p className="listening-preview-message">{t("listening.previewRequired")}</p>
+      ) : null}
       <button className="text-button" type="button" onClick={startNextTrial}>
         <RotateCcw aria-hidden="true" />
         <span>{t("listening.nextTrial")}</span>
